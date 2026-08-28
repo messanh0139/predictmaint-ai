@@ -1,0 +1,175 @@
+name: MLOps - Retrain and Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: production-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGION: ${{ vars.GCP_REGION }}
+  REPOSITORY: predictmaint
+  API_SERVICE: predictmaint-api
+  DASHBOARD_SERVICE: predictmaint-dashboard
+  RETRAIN_JOB: predictmaint-retrain
+  OPTUNA_TRIALS: ${{ vars.MLOPS_OPTUNA_TRIALS || '10' }}
+  PREDICTION_BUCKET: ${{ vars.PREDICTION_BUCKET }}
+  MODEL_ARTIFACT_BUCKET: ${{ vars.MODEL_ARTIFACT_BUCKET }}
+  MLFLOW_TRACKING_URI: ${{ vars.MLFLOW_TRACKING_URI }}
+
+jobs:
+  validate-retrain-deploy:
+    name: Validate, retrain and deploy production
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install validation dependencies
+        run: pip install -r requirements.txt -c constraints-model.txt
+
+      - name: Static, unit and anti-leakage checks
+        run: |
+          ruff check api dashboard src tests scripts
+          pytest --cov=src --cov=api --cov-report=term-missing
+
+      - name: Validate required deployment configuration
+        shell: bash
+        run: |
+          test -n "${REGION}" || { echo "Missing GitHub variable GCP_REGION"; exit 1; }
+          test -n "${PREDICTION_BUCKET}" || { echo "Missing GitHub variable PREDICTION_BUCKET"; exit 1; }
+          test -n "${MODEL_ARTIFACT_BUCKET}" || { echo "Missing GitHub variable MODEL_ARTIFACT_BUCKET"; exit 1; }
+
+      - name: Authenticate to Google Cloud with Workload Identity Federation
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOYER_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Configure Artifact Registry
+        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+
+      - name: Build and push immutable trainer
+        shell: bash
+        run: |
+          TRAINER_IMAGE="${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${REPOSITORY}/predictmaint-trainer:${GITHUB_SHA}"
+          docker build --pull -f Dockerfile.train -t "${TRAINER_IMAGE}" .
+          docker push "${TRAINER_IMAGE}"
+          echo "TRAINER_IMAGE=${TRAINER_IMAGE}" >> "${GITHUB_ENV}"
+
+      - name: Deploy retraining job
+        shell: bash
+        run: |
+          JOB_ENV="PREDICTION_BUCKET=${PREDICTION_BUCKET},MODEL_ARTIFACT_BUCKET=${MODEL_ARTIFACT_BUCKET},INCLUDE_PRODUCTION_FEEDBACK=1,OPTUNA_TRIALS=${OPTUNA_TRIALS}"
+          if [[ -n "${MLFLOW_TRACKING_URI}" ]]; then
+            JOB_ENV="${JOB_ENV},MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}"
+          fi
+          gcloud run jobs deploy "${RETRAIN_JOB}" \
+            --image "${TRAINER_IMAGE}" \
+            --region "${REGION}" \
+            --service-account "${{ secrets.GCP_TRAINER_SERVICE_ACCOUNT }}" \
+            --set-env-vars "${JOB_ENV}" \
+            --tasks 1 \
+            --max-retries 0 \
+            --task-timeout 3600 \
+            --quiet
+
+      - name: Retrain from production feedback and enforce quality gate
+        run: gcloud run jobs execute "${RETRAIN_JOB}" --region "${REGION}" --wait
+
+      - name: Download the validated champion
+        shell: bash
+        run: |
+          gcloud storage cp "gs://${MODEL_ARTIFACT_BUCKET}/models/champion.json" /tmp/champion.json
+          MODEL_OBJECT="$(python -c "import json; print(json.load(open('/tmp/champion.json'))['model_object'])")"
+          METADATA_OBJECT="$(python -c "import json; print(json.load(open('/tmp/champion.json'))['metadata_object'])")"
+          gcloud storage cp "gs://${MODEL_ARTIFACT_BUCKET}/${MODEL_OBJECT}" models/model.joblib
+          gcloud storage cp "gs://${MODEL_ARTIFACT_BUCKET}/${METADATA_OBJECT}" models/model_metadata.json
+          test -s models/model.joblib
+          test -s models/model_metadata.json
+
+      - name: Build and push API and dashboard images
+        shell: bash
+        run: |
+          API_IMAGE="${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${REPOSITORY}/${API_SERVICE}:${GITHUB_SHA}"
+          DASHBOARD_IMAGE="${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${REPOSITORY}/${DASHBOARD_SERVICE}:${GITHUB_SHA}"
+          docker build --pull -t "${API_IMAGE}" .
+          docker build --pull -f Dockerfile.dashboard -t "${DASHBOARD_IMAGE}" .
+          docker push "${API_IMAGE}"
+          docker push "${DASHBOARD_IMAGE}"
+          echo "API_IMAGE=${API_IMAGE}" >> "${GITHUB_ENV}"
+          echo "DASHBOARD_IMAGE=${DASHBOARD_IMAGE}" >> "${GITHUB_ENV}"
+
+      - name: Deploy private API
+        run: |
+          gcloud run deploy "${API_SERVICE}" \
+            --image "${API_IMAGE}" \
+            --region "${REGION}" \
+            --platform managed \
+            --service-account "${{ secrets.GCP_RUNTIME_SERVICE_ACCOUNT }}" \
+            --set-env-vars "PREDICTION_BUCKET=${PREDICTION_BUCKET},LOG_LEVEL=INFO" \
+            --cpu 1 --memory 1Gi --concurrency 10 --timeout 60 --min 0 --max 5 \
+            --no-allow-unauthenticated \
+            --quiet
+
+      - name: Authorize dashboard and deployer to invoke API
+        run: |
+          gcloud run services add-iam-policy-binding "${API_SERVICE}" \
+            --region "${REGION}" \
+            --member "serviceAccount:${{ secrets.GCP_RUNTIME_SERVICE_ACCOUNT }}" \
+            --role roles/run.invoker \
+            --quiet
+          gcloud run services add-iam-policy-binding "${API_SERVICE}" \
+            --region "${REGION}" \
+            --member "serviceAccount:${{ secrets.GCP_DEPLOYER_SERVICE_ACCOUNT }}" \
+            --role roles/run.invoker \
+            --quiet
+
+      - name: Resolve API URL
+        shell: bash
+        run: |
+          API_URL="$(gcloud run services describe "${API_SERVICE}" --region "${REGION}" --format='value(status.url)')"
+          test -n "${API_URL}"
+          echo "API_URL=${API_URL}" >> "${GITHUB_ENV}"
+
+      - name: Deploy public presentation dashboard
+        run: |
+          gcloud run deploy "${DASHBOARD_SERVICE}" \
+            --image "${DASHBOARD_IMAGE}" \
+            --region "${REGION}" \
+            --platform managed \
+            --service-account "${{ secrets.GCP_RUNTIME_SERVICE_ACCOUNT }}" \
+            --set-env-vars "API_URL=${API_URL},API_AUDIENCE=${API_URL}" \
+            --port 8501 \
+            --cpu 1 --memory 1Gi --concurrency 20 --timeout 60 --min 0 --max 3 \
+            --allow-unauthenticated \
+            --quiet
+
+      - name: Smoke tests
+        shell: bash
+        run: |
+          ID_TOKEN="$(gcloud auth print-identity-token --audiences="${API_URL}")"
+          curl --fail --retry 5 --retry-delay 5 \
+            -H "Authorization: Bearer ${ID_TOKEN}" "${API_URL}/ready"
+          DASHBOARD_URL="$(gcloud run services describe "${DASHBOARD_SERVICE}" --region "${REGION}" --format='value(status.url)')"
+          curl --fail --retry 8 --retry-delay 5 "${DASHBOARD_URL}/_stcore/health"
+          echo "### Production deployed" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- Dashboard: ${DASHBOARD_URL}" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- API: ${API_URL}" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- Model image tag: ${GITHUB_SHA}" >> "${GITHUB_STEP_SUMMARY}"

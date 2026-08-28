@@ -1,0 +1,49 @@
+{
+  "constant_removed": [
+    "sensor_1",
+    "sensor_10",
+    "sensor_16",
+    "sensor_18",
+    "sensor_19",
+    "sensor_5",
+    "setting_3"
+  ],
+  "correlated_removed": [
+    "sensor_2_mean_20",
+    "sensor_2_ewm_10",
+    "sensor_3_mean_20",
+    "sensor_3_ewm_10",
+    "sensor_4_mean_10",
+    "sensor_4_mean_20",
+    "sensor_4_ewm_10",
+    "sensor_7_mean_10",
+    "sensor_7_mean_20",
+    "sensor_7_ewm_10",
+    "sensor_11_mean_10",
+    "sensor_11_mean_20",
+    "sensor_11_max_20",
+    "sensor_11_ewm_10",
+    "sensor_12_mean_10",
+    "sensor_12_mean_20",
+    "sensor_12_min_20",
+    "sensor_12_ewm_10",
+    "sensor_15_mean_10",
+    "sensor_15_mean_20",
+    "sensor_15_ewm_10",
+    "sensor_17_mean_20",
+    "sensor_17_ewm_10",
+    "sensor_20_mean_20",
+    "sensor_20_ewm_10",
+    "sensor_21_mean_20",
+    "sensor_21_ewm_10"
+  ],
+  "corr_threshold": 0.98,
+  "selection_fit_scope": "TRAIN only",
+  "methods": [
+    "variance",
+    "correlation",
+    "mutual_information",
+    "random_forest",
+    "l1"
+  ]
+}

@@ -1,0 +1,39 @@
+# Virtual environments
+venv/
+.venv/
+
+# Python
+__pycache__/
+.pytest_cache/
+.ipynb_checkpoints/
+*.pyc
+
+# Jupyter temporary config
+.jupyter-config-check/
+.jupyter-config-verify/
+
+# Environment variables
+.env
+
+# MLflow
+mlflow.db
+mlruns/*
+!mlruns/.gitkeep
+
+# Evidently reports
+monitoring/evidently/reports/*
+!monitoring/evidently/reports/.gitkeep
+
+# Processed data
+data/processed/*
+!data/processed/.gitkeep
+
+# Trained models
+models/**/*.joblib
+
+# Temporary files
+/tmp/
+*.log
+
+# Google/GitHub credentials
+gha-creds-*.json

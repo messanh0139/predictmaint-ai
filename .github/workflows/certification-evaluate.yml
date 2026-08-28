@@ -1,0 +1,39 @@
+name: Locked NASA Holdout Evaluation
+
+on:
+  workflow_dispatch:
+
+jobs:
+  final-evaluation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt -c constraints-model.txt
+      - name: Quality and leakage tests
+        run: |
+          ruff check api src tests scripts
+          pytest -q
+      - name: Reproduce the locked development pipeline
+        run: |
+          python -m src.data.prepare
+          python -m src.features.select_features
+          python -m src.models.train
+          python -m src.models.quality_gate
+      - name: Consume external NASA holdout explicitly
+        run: python -m src.models.evaluate
+      - name: Consolidate certification validation report
+        run: python scripts/validate_project.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: certification-evidence-${{ github.sha }}
+          path: |
+            models/test_metrics.json
+            models/test_predictions.csv
+            models/leaderboard.csv
+            models/model_metadata.json
+            data/processed/split_manifest.json
+            reports/project_validation.json

@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+  workflow_dispatch:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt -c constraints-model.txt
+      - name: Static checks
+        run: ruff check api src tests scripts
+      - name: Unit and leakage tests
+        run: pytest --cov=src --cov=api --cov-report=term-missing
+      - name: Rebuild data partitions
+        run: python -m src.data.prepare
+      - name: Fit feature selection on TRAIN only
+        run: python -m src.features.select_features
+      - name: Train baseline candidates
+        run: python -m src.models.train
+      - name: Validation quality gate
+        run: python -m src.models.quality_gate
+      - name: Register validated artifact
+        run: python -m src.models.register
+      - name: Verify production artifact contract
+        run: |
+          test -s models/model.joblib
+          test -s models/model_metadata.json
+          test -s models/leaderboard.csv

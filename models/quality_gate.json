@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "checks": {
+    "recall": {
+      "value": 1.0,
+      "min": 0.85,
+      "passed": true
+    },
+    "pr_auc": {
+      "value": 0.9459492868527207,
+      "min": 0.7,
+      "passed": true
+    },
+    "business_cost_per_1000": {
+      "value": 58746.7362924282,
+      "max": 250000.0,
+      "passed": true
+    }
+  }
+}

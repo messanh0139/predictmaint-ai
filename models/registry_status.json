@@ -1,0 +1,36 @@
+{
+  "local_registry": {
+    "version": "optimized-b623fc94786a",
+    "model_name": "xgboost_optimized",
+    "model_sha256": "febd589107cb2cf208893e01c7c79178dc796cfc4b891885c1cb8204b15edd4d",
+    "dataset_manifest_sha256": "b623fc94786a5dc4373c4e9e958c4d25c4a7e62764b087f86925edec4ede5527",
+    "validation_metrics": {
+      "threshold": 0.002844517994672067,
+      "precision": 0.5636363636363636,
+      "recall": 1.0,
+      "specificity": 0.8614851866102347,
+      "balanced_accuracy": 0.9307425933051173,
+      "f1": 0.7209302325581395,
+      "mcc": 0.6968244957717739,
+      "roc_auc": 0.9881335666737,
+      "pr_auc": 0.9459492868527207,
+      "brier": 0.03116403697351666,
+      "tn": 2239,
+      "fp": 360,
+      "fn": 0,
+      "tp": 465,
+      "business_cost": 180000.0,
+      "business_cost_per_1000": 58746.7362924282
+    },
+    "artifact": "models/registry/optimized-b623fc94786a/model.joblib",
+    "metadata": "models/registry/optimized-b623fc94786a/metadata.json"
+  },
+  "mlflow_registry": {
+    "status": "not_executed_in_packaging",
+    "reason": "requires configured persistent tracking backend for production"
+  },
+  "gcs_artifact_store": {
+    "status": "not_executed_in_packaging",
+    "reason": "requires user GCP project/bucket credentials"
+  }
+}

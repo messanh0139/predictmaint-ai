@@ -1,0 +1,33 @@
+{
+  "title": "PredictMaint AI - API Monitoring",
+  "uid": "predictmaint-ai",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Predictions / minute",
+      "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+      "targets": [{"expr": "sum(rate(predictmaint_predictions_total[1m])) by (risk)", "legendFormat": "{{risk}}"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "P95 latency",
+      "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+      "targets": [{"expr": "histogram_quantile(0.95, sum(rate(predictmaint_prediction_latency_seconds_bucket[5m])) by (le))", "legendFormat": "p95"}]
+    },
+    {
+      "type": "stat",
+      "title": "Model ready",
+      "gridPos": {"x": 0, "y": 8, "w": 6, "h": 5},
+      "targets": [{"expr": "predictmaint_model_ready"}]
+    },
+    {
+      "type": "stat",
+      "title": "Telemetry errors",
+      "gridPos": {"x": 6, "y": 8, "w": 6, "h": 5},
+      "targets": [{"expr": "sum(predictmaint_telemetry_errors_total)"}]
+    }
+  ]
+}

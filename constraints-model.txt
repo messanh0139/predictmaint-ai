@@ -1,0 +1,6 @@
+# Versions modèle critiques utilisées pour garantir la reproductibilité de la sérialisation.
+pandas==2.2.3
+numpy==2.3.5
+scikit-learn==1.8.0
+xgboost==3.1.3
+joblib==1.5.3

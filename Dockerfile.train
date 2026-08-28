@@ -1,0 +1,12 @@
+FROM python:3.12-slim
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+WORKDIR /app
+COPY requirements-api.txt requirements-train.txt constraints-model.txt ./
+RUN pip install --no-cache-dir -r requirements-train.txt -c constraints-model.txt
+COPY src ./src
+COPY data/raw ./data/raw
+RUN useradd --create-home --uid 10001 trainer && chown -R trainer:trainer /app
+USER 10001
+CMD ["sh", "-c", "python -m src.pipelines.retrain --optimize --trials ${OPTUNA_TRIALS:-10}"]

@@ -1,0 +1,52 @@
+{
+  "promoted": true,
+  "guardrails_ok": true,
+  "candidate_better_on_locked_validation": true,
+  "champion": {
+    "name": "random_forest",
+    "validation_metrics": {
+      "name": "random_forest",
+      "threshold_source": "dedicated calibration engines",
+      "calibration_pr_auc": 0.9598626053618143,
+      "calibration_recall": 0.9913978494623656,
+      "threshold": 0.13,
+      "precision": 0.6579710144927536,
+      "recall": 0.9763440860215054,
+      "specificity": 0.9091958445555983,
+      "balanced_accuracy": 0.9427699652885518,
+      "f1": 0.7861471861471861,
+      "mcc": 0.760628970486397,
+      "roc_auc": 0.9889593598861431,
+      "pr_auc": 0.9494418594143065,
+      "brier": 0.028183800483526564,
+      "tn": 2363,
+      "fp": 236,
+      "fn": 11,
+      "tp": 454,
+      "business_cost": 228000.0,
+      "business_cost_per_1000": 74412.53263707571
+    }
+  },
+  "candidate": {
+    "name": "xgboost_optimized",
+    "validation_metrics": {
+      "threshold": 0.002844517994672067,
+      "precision": 0.5636363636363636,
+      "recall": 1.0,
+      "specificity": 0.8614851866102347,
+      "balanced_accuracy": 0.9307425933051173,
+      "f1": 0.7209302325581395,
+      "mcc": 0.6968244957717739,
+      "roc_auc": 0.9881335666737,
+      "pr_auc": 0.9459492868527207,
+      "brier": 0.03116403697351666,
+      "tn": 2239,
+      "fp": 360,
+      "fn": 0,
+      "tp": 465,
+      "business_cost": 180000.0,
+      "business_cost_per_1000": 58746.7362924282
+    }
+  },
+  "decision_rule": "validation only; recall guardrail -> business cost -> PR-AUC -> Brier"
+}
