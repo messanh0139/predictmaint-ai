@@ -1,6 +1,7 @@
 import pandas as pd
 
 from src.data.load import load_test_inputs_fd001, load_train_fd001
+from src.data.prepare import load_supplemental_features
 from src.data.split import split_by_engine, split_by_engine_three_way
 from src.data.targets import add_test_targets, add_train_targets
 from src.data.validate import validate_raw, validate_rul_alignment
@@ -72,3 +73,38 @@ def test_feedback_dataset_builds_labelled_production_row():
     assert int(out.iloc[0]["engine_id"]) == 1_000_007
     assert int(out.iloc[0]["failure_within_30_cycles"]) == 1
     assert "sensor_2_mean_5" in out.columns
+
+
+def test_load_supplemental_features_missing_file_returns_empty(tmp_path):
+    result = load_supplemental_features(tmp_path / "does_not_exist.csv", columns=["a", "b"])
+    assert result.empty
+
+
+def test_load_supplemental_features_handles_empty_file_without_crashing(tmp_path):
+    # Cas réel : collect_feedback.py peut produire un fichier sans aucune ligne
+    # labellisée exploitable (aucune prédiction de production n'a encore reçu de
+    # feedback). pandas lève EmptyDataError sur un CSV vide ; ça doit être absorbé.
+    path = tmp_path / "feedback_features.csv"
+    path.write_text("\n", encoding="utf-8")
+    result = load_supplemental_features(path, columns=["engine_id", "cycle", "failure_within_30_cycles"])
+    assert result.empty
+
+
+def test_load_supplemental_features_rejects_missing_required_columns(tmp_path):
+    path = tmp_path / "feedback_features.csv"
+    pd.DataFrame({"engine_id": [1], "cycle": [1]}).to_csv(path, index=False)
+    result = load_supplemental_features(path, columns=["engine_id", "cycle", "failure_within_30_cycles"])
+    assert result.empty
+
+
+def test_load_supplemental_features_reindexes_to_target_columns(tmp_path):
+    path = tmp_path / "feedback_features.csv"
+    pd.DataFrame(
+        {"engine_id": [1_000_007], "cycle": [3], "failure_within_30_cycles": [1]}
+    ).to_csv(path, index=False)
+    result = load_supplemental_features(
+        path, columns=["engine_id", "cycle", "failure_within_30_cycles", "sensor_2_mean_5"]
+    )
+    assert list(result.columns) == ["engine_id", "cycle", "failure_within_30_cycles", "sensor_2_mean_5"]
+    assert len(result) == 1
+    assert pd.isna(result.iloc[0]["sensor_2_mean_5"])

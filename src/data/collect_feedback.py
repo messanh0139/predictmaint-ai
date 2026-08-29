@@ -114,6 +114,11 @@ def main() -> None:
         raise SystemExit("Provide --bucket or both --predictions and --feedback")
 
     dataset = build_feedback_feature_dataset(predictions, feedback)
+    if dataset.empty:
+        # Rien de nouveau à fusionner : ne pas écraser un fichier existant (ex. données
+        # déposées via /retrain/upload) avec un CSV vide et invalide pour pandas.
+        print(json.dumps({"rows": 0, "output": None, "note": "no new labelled feedback"}, indent=2))
+        return
     args.output.parent.mkdir(parents=True, exist_ok=True)
     dataset.to_csv(args.output, index=False)
     print(json.dumps({"rows": int(len(dataset)), "output": str(args.output)}, indent=2))

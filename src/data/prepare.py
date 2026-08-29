@@ -27,6 +27,26 @@ def _positive_rate(df: pd.DataFrame) -> float:
     return float(df[TARGET_COL].mean())
 
 
+def load_supplemental_features(path: Path, columns) -> pd.DataFrame:
+    """Charge le lot optionnel de features de production (feedback ou upload direct).
+
+    Retourne un DataFrame vide si le fichier est absent, vide ou sans les colonnes
+    minimales requises : c'est un cas normal (aucune donnée de production pour le
+    moment, par exemple avant la première vraie prédiction en production), pas une
+    erreur qui doit interrompre la préparation.
+    """
+    if not path.exists() or path.stat().st_size == 0:
+        return pd.DataFrame()
+    try:
+        supplemental = pd.read_csv(path)
+    except pd.errors.EmptyDataError:
+        return pd.DataFrame()
+    required = {ID_COL, TARGET_COL, "cycle"}
+    if not required.issubset(supplemental.columns) or supplemental.empty:
+        return pd.DataFrame()
+    return supplemental.reindex(columns=columns)
+
+
 def main() -> None:
     """Prépare uniquement les partitions de développement.
 
@@ -55,11 +75,9 @@ def main() -> None:
     supplemental_path = Path(
         os.getenv("SUPPLEMENTAL_FEATURES_PATH", "data/production/feedback_features.csv")
     )
-    if os.getenv("INCLUDE_PRODUCTION_FEEDBACK", "0") == "1" and supplemental_path.exists():
-        supplemental = pd.read_csv(supplemental_path)
-        required = {ID_COL, TARGET_COL, "cycle"}
-        if required.issubset(supplemental.columns) and not supplemental.empty:
-            supplemental = supplemental.reindex(columns=train_features.columns)
+    if os.getenv("INCLUDE_PRODUCTION_FEEDBACK", "0") == "1":
+        supplemental = load_supplemental_features(supplemental_path, train_features.columns)
+        if not supplemental.empty:
             supplemental_rows = int(len(supplemental))
             train_features = pd.concat([train_features, supplemental], ignore_index=True)
 
