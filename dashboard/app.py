@@ -32,7 +32,6 @@ SNAPSHOT_COLUMNS = [column for column in BASE_COLUMNS if column != "engine_id"]
 
 st.set_page_config(
     page_title="PredictMaint AI",
-    page_icon="⚙️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -150,13 +149,11 @@ test_metrics = load_json(METRICS_PATH)
 health, health_error = api_get("/ready")
 
 with st.sidebar:
-    st.title("⚙️ PredictMaint")
-    st.caption("Cockpit de maintenance prédictive")
+    st.title("PredictMaint")
     if health_error:
         st.error("API indisponible")
     else:
         st.success("API et modèle opérationnels")
-        st.caption(f"Version : {health.get('model_version', 'n/a')}")
 
     st.divider()
     st.markdown("**Écosystème MLOps**")
@@ -169,8 +166,6 @@ with st.sidebar:
         """,
         unsafe_allow_html=True,
     )
-    st.divider()
-    st.caption("Données de démonstration : jeu de données FD001")
 
 st.markdown(
     """
@@ -190,10 +185,10 @@ metric_columns[3].metric("Fenêtre d'alerte", f"{metadata.get('failure_window', 
 
 prediction_tab, performance_tab, retrain_tab, architecture_tab = st.tabs(
     [
-        "🔎 Démonstration prédictive",
-        "📊 Performance",
-        "🔄 Réentraînement automatique",
-        "🔗 Parcours de présentation",
+        "Démonstration prédictive",
+        "Performance",
+        "Réentraînement automatique",
+        "Parcours de présentation",
     ]
 )
 
