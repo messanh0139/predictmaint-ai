@@ -18,6 +18,9 @@ env:
   REPOSITORY: predictmaint
   API_SERVICE: predictmaint-api
   DASHBOARD_SERVICE: predictmaint-dashboard
+  MLFLOW_SERVICE: predictmaint-mlflow
+  GRAFANA_SERVICE: predictmaint-grafana
+  GRAFANA_SECRET: predictmaint-grafana-admin
   RETRAIN_JOB: predictmaint-retrain
   OPTUNA_TRIALS: ${{ vars.MLOPS_OPTUNA_TRIALS || '10' }}
   PREDICTION_BUCKET: ${{ vars.PREDICTION_BUCKET }}
@@ -104,17 +107,21 @@ jobs:
           test -s models/model.joblib
           test -s models/model_metadata.json
 
-      - name: Build and push API and dashboard images
+      - name: Build and push service images
         shell: bash
         run: |
           API_IMAGE="${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${REPOSITORY}/${API_SERVICE}:${GITHUB_SHA}"
           DASHBOARD_IMAGE="${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${REPOSITORY}/${DASHBOARD_SERVICE}:${GITHUB_SHA}"
+          GRAFANA_IMAGE="${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${REPOSITORY}/${GRAFANA_SERVICE}:${GITHUB_SHA}"
           docker build --pull -t "${API_IMAGE}" .
           docker build --pull -f Dockerfile.dashboard -t "${DASHBOARD_IMAGE}" .
+          docker build --pull -f Dockerfile.grafana -t "${GRAFANA_IMAGE}" .
           docker push "${API_IMAGE}"
           docker push "${DASHBOARD_IMAGE}"
+          docker push "${GRAFANA_IMAGE}"
           echo "API_IMAGE=${API_IMAGE}" >> "${GITHUB_ENV}"
           echo "DASHBOARD_IMAGE=${DASHBOARD_IMAGE}" >> "${GITHUB_ENV}"
+          echo "GRAFANA_IMAGE=${GRAFANA_IMAGE}" >> "${GITHUB_ENV}"
 
       - name: Deploy private API
         run: |
@@ -123,7 +130,7 @@ jobs:
             --region "${REGION}" \
             --platform managed \
             --service-account "${{ secrets.GCP_RUNTIME_SERVICE_ACCOUNT }}" \
-            --set-env-vars "PREDICTION_BUCKET=${PREDICTION_BUCKET},LOG_LEVEL=INFO" \
+            --set-env-vars "PREDICTION_BUCKET=${PREDICTION_BUCKET},LOG_LEVEL=INFO,GCP_REGION=${REGION}" \
             --cpu 1 --memory 1Gi --concurrency 10 --timeout 60 --min 0 --max 5 \
             --no-cpu-throttling \
             --no-allow-unauthenticated \
@@ -149,14 +156,52 @@ jobs:
           test -n "${API_URL}"
           echo "API_URL=${API_URL}" >> "${GITHUB_ENV}"
 
-      - name: Deploy public presentation dashboard
+      - name: Resolve optional MLOps tool URLs
+        continue-on-error: true
+        shell: bash
         run: |
+          MLFLOW_URL="$(gcloud run services describe "${MLFLOW_SERVICE}" --region "${REGION}" --format='value(status.url)' 2>/dev/null || true)"
+          echo "MLFLOW_URL=${MLFLOW_URL}" >> "${GITHUB_ENV}"
+
+      - name: Deploy Grafana
+        continue-on-error: true
+        shell: bash
+        run: |
+          if ! gcloud secrets describe "${GRAFANA_SECRET}" --project "${{ secrets.GCP_PROJECT_ID }}" >/dev/null 2>&1; then
+            ADMIN_PASSWORD="$(openssl rand -base64 24 | tr -dc 'A-Za-z0-9' | head -c 24)"
+            printf '%s' "${ADMIN_PASSWORD}" | gcloud secrets create "${GRAFANA_SECRET}" \
+              --project "${{ secrets.GCP_PROJECT_ID }}" --replication-policy=automatic --data-file=-
+          fi
+          gcloud secrets add-iam-policy-binding "${GRAFANA_SECRET}" \
+            --project "${{ secrets.GCP_PROJECT_ID }}" \
+            --member="serviceAccount:${{ secrets.GCP_RUNTIME_SERVICE_ACCOUNT }}" \
+            --role="roles/secretmanager.secretAccessor" --quiet
+          gcloud run deploy "${GRAFANA_SERVICE}" \
+            --image "${GRAFANA_IMAGE}" \
+            --region "${REGION}" \
+            --platform managed \
+            --service-account "${{ secrets.GCP_RUNTIME_SERVICE_ACCOUNT }}" \
+            --set-env-vars "GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }},GF_SECURITY_ADMIN_USER=admin" \
+            --set-secrets "GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_SECRET}:latest" \
+            --port 3000 \
+            --cpu 1 --memory 512Mi --concurrency 20 --timeout 60 --min 0 --max 2 \
+            --allow-unauthenticated \
+            --quiet
+          GRAFANA_URL="$(gcloud run services describe "${GRAFANA_SERVICE}" --region "${REGION}" --format='value(status.url)')"
+          echo "GRAFANA_URL=${GRAFANA_URL}" >> "${GITHUB_ENV}"
+
+      - name: Deploy public presentation dashboard
+        shell: bash
+        run: |
+          ENV_VARS="API_URL=${API_URL},API_AUDIENCE=${API_URL}"
+          [ -n "${MLFLOW_URL:-}" ] && ENV_VARS="${ENV_VARS},MLFLOW_URL=${MLFLOW_URL}"
+          [ -n "${GRAFANA_URL:-}" ] && ENV_VARS="${ENV_VARS},GRAFANA_URL=${GRAFANA_URL}"
           gcloud run deploy "${DASHBOARD_SERVICE}" \
             --image "${DASHBOARD_IMAGE}" \
             --region "${REGION}" \
             --platform managed \
             --service-account "${{ secrets.GCP_RUNTIME_SERVICE_ACCOUNT }}" \
-            --set-env-vars "API_URL=${API_URL},API_AUDIENCE=${API_URL}" \
+            --set-env-vars "${ENV_VARS}" \
             --port 8501 \
             --cpu 1 --memory 1Gi --concurrency 20 --timeout 60 --min 0 --max 3 \
             --allow-unauthenticated \
@@ -180,4 +225,7 @@ jobs:
           echo "### Production deployed" >> "${GITHUB_STEP_SUMMARY}"
           echo "- Dashboard: ${DASHBOARD_URL}" >> "${GITHUB_STEP_SUMMARY}"
           echo "- API: ${API_URL}" >> "${GITHUB_STEP_SUMMARY}"
+          [ -n "${MLFLOW_URL:-}" ] && echo "- MLflow: ${MLFLOW_URL}" >> "${GITHUB_STEP_SUMMARY}"
+          [ -n "${GRAFANA_URL:-}" ] && echo "- Grafana: ${GRAFANA_URL} (mot de passe admin dans Secret Manager: ${GRAFANA_SECRET})" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- Cloud Monitoring: métriques custom sous custom.googleapis.com/predictmaint/*" >> "${GITHUB_STEP_SUMMARY}"
           echo "- Model image tag: ${GITHUB_SHA}" >> "${GITHUB_STEP_SUMMARY}"

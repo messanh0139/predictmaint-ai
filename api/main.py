@@ -20,6 +20,7 @@ from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, ge
 from pydantic import BaseModel, Field, model_validator
 from starlette.responses import Response
 
+import api.cloud_monitoring as cloud_monitoring
 from src.data.collect_feedback import append_feature_dataset, build_uploaded_feature_dataset
 from src.features.build_features import build_causal_features
 from src.monitoring.drift import current_features_from_prediction_log, statistical_drift_report
@@ -53,6 +54,8 @@ DRIFT_SHARE = Gauge("predictmaint_drift_share", "Part des variables en dérive (
 DRIFT_PSI = Gauge("predictmaint_drift_psi", "PSI par variable vs référence TRAIN", ["feature"])
 
 DRIFT_CHECK_INTERVAL_SECONDS = int(os.getenv("DRIFT_CHECK_INTERVAL_SECONDS", "300"))
+CLOUD_MONITORING_FLUSH_INTERVAL_SECONDS = int(os.getenv("CLOUD_MONITORING_FLUSH_INTERVAL_SECONDS", "60"))
+GCP_REGION = os.getenv("GCP_REGION", "")
 
 _model = None
 _metadata = None
@@ -237,6 +240,23 @@ def _drift_monitor_loop() -> None:
 
 
 threading.Thread(target=_drift_monitor_loop, daemon=True).start()
+
+
+def _cloud_monitoring_flush_loop() -> None:
+    while True:
+        time.sleep(CLOUD_MONITORING_FLUSH_INTERVAL_SECONDS)
+        cloud_monitoring.flush(
+            GCP_REGION,
+            predictions=PREDICTIONS,
+            telemetry_errors=TELEMETRY_ERRORS,
+            model_ready=MODEL_READY,
+            drift_share=DRIFT_SHARE,
+            drift_psi=DRIFT_PSI,
+            latency=LATENCY,
+        )
+
+
+threading.Thread(target=_cloud_monitoring_flush_loop, daemon=True).start()
 
 
 @app.get("/live")

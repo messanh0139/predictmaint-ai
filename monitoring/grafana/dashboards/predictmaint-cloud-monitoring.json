@@ -1,0 +1,161 @@
+{
+  "title": "PredictMaint AI - Cloud Monitoring",
+  "uid": "predictmaint-cloud-monitoring",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Predictions / minute (par risque)",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "timeSeriesList",
+          "timeSeriesList": {
+            "filters": ["metric.type=\"custom.googleapis.com/predictmaint/predictions_total\""],
+            "view": "FULL",
+            "groupBys": ["metric.label.risk"],
+            "perSeriesAligner": "ALIGN_RATE",
+            "crossSeriesReducer": "REDUCE_NONE",
+            "alignmentPeriod": "60s"
+          }
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Latence moyenne des prédictions",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "timeSeriesList",
+          "timeSeriesList": {
+            "filters": ["metric.type=\"custom.googleapis.com/predictmaint/prediction_latency_seconds_mean\""],
+            "view": "FULL",
+            "perSeriesAligner": "ALIGN_MEAN",
+            "alignmentPeriod": "60s"
+          }
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Model ready",
+      "gridPos": { "x": 0, "y": 8, "w": 6, "h": 5 },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "timeSeriesList",
+          "timeSeriesList": {
+            "filters": ["metric.type=\"custom.googleapis.com/predictmaint/model_ready\""],
+            "view": "FULL",
+            "perSeriesAligner": "ALIGN_MEAN",
+            "alignmentPeriod": "60s"
+          }
+        }
+      ]
+    },
+    {
+      "type": "gauge",
+      "title": "Drift share (part des variables en dérive)",
+      "gridPos": { "x": 6, "y": 8, "w": 6, "h": 5 },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 1,
+          "unit": "percentunit",
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 0.2 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "timeSeriesList",
+          "timeSeriesList": {
+            "filters": ["metric.type=\"custom.googleapis.com/predictmaint/drift_share\""],
+            "view": "FULL",
+            "perSeriesAligner": "ALIGN_MEAN",
+            "alignmentPeriod": "60s"
+          }
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Telemetry errors (total)",
+      "gridPos": { "x": 12, "y": 8, "w": 6, "h": 5 },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "timeSeriesList",
+          "timeSeriesList": {
+            "filters": ["metric.type=\"custom.googleapis.com/predictmaint/telemetry_errors_total\""],
+            "view": "FULL",
+            "perSeriesAligner": "ALIGN_MAX",
+            "crossSeriesReducer": "REDUCE_SUM",
+            "alignmentPeriod": "60s"
+          }
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Cloud Run - requêtes API (natif, aucune métrique custom)",
+      "gridPos": { "x": 18, "y": 8, "w": 6, "h": 5 },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "timeSeriesList",
+          "timeSeriesList": {
+            "filters": [
+              "metric.type=\"run.googleapis.com/request_count\"",
+              "resource.label.service_name=\"predictmaint-api\""
+            ],
+            "view": "FULL",
+            "perSeriesAligner": "ALIGN_RATE",
+            "crossSeriesReducer": "REDUCE_SUM",
+            "alignmentPeriod": "60s"
+          }
+        }
+      ]
+    },
+    {
+      "type": "bargauge",
+      "title": "PSI par variable (dérive vs référence TRAIN)",
+      "gridPos": { "x": 0, "y": 13, "w": 24, "h": 8 },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 0.2 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "timeSeriesList",
+          "timeSeriesList": {
+            "filters": ["metric.type=\"custom.googleapis.com/predictmaint/drift_psi\""],
+            "view": "FULL",
+            "groupBys": ["metric.label.feature"],
+            "perSeriesAligner": "ALIGN_MEAN",
+            "crossSeriesReducer": "REDUCE_MEAN",
+            "alignmentPeriod": "60s"
+          }
+        }
+      ]
+    }
+  ]
+}

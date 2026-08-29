@@ -82,25 +82,35 @@ export PROJECT_ID="votre-projet"
 > `--allowed-hosts "*"` et `--cors-allowed-origins "*"` sont nécessaires : MLflow 3
 > bloque par défaut tout `Host` autre que `localhost`.
 
-Optionnel, déployer Prometheus puis Grafana (publics, pour la démonstration) :
+Optionnel, déployer Grafana (public, pour la démonstration) :
 
 ```bash
 export PROJECT_ID="votre-projet"
-./infra/gcp/deploy_prometheus.sh
 ./infra/gcp/deploy_grafana.sh
 ```
 
-`deploy_prometheus.sh` déploie Prometheus avec un script d'entrée qui renouvelle en
-continu un jeton d'identité (serveur de métadonnées GCP) pour scraper l'API privée —
-voir `infra/gcp/prometheus-entrypoint.sh`. Prometheus reste public sans authentification
-(mêmes compromis que MLflow : pas de données sensibles dedans). `deploy_grafana.sh`
-génère un mot de passe admin aléatoire stocké dans Secret Manager (affiché une seule
-fois à la fin) et pointe automatiquement le datasource vers le Prometheus déployé.
+Le monitoring service sur GCP n'utilise **pas** Prometheus : Cloud Run alimente déjà
+Cloud Monitoring nativement, sans rien déployer. `api/cloud_monitoring.py` pousse en
+plus les métriques métier custom (drift, prédictions, état du modèle — celles que
+Cloud Monitoring ne voit pas tout seul) toutes les 60 secondes
+(`CLOUD_MONITORING_FLUSH_INTERVAL_SECONDS`) sous `custom.googleapis.com/predictmaint/*`,
+en lisant directement les objets `prometheus_client` déjà utilisés par `/metrics`
+(aucun call-site changé, aucun risque de désynchronisation entre les deux exports).
+S'authentifie via les credentials par défaut du compte `runtime` (`roles/monitoring.metricWriter`),
+sans configuration supplémentaire. `deploy_grafana.sh` déploie Grafana avec un
+datasource « Google Cloud Monitoring » natif (`authenticationType: gce`, même compte
+`runtime`, `roles/monitoring.viewer`) — pas de jeton à renouveler manuellement,
+contrairement à ce qu'aurait nécessité Prometheus sur Cloud Run.
 
 Le drift des données (PSI par variable, `src/monitoring/drift.py`) est recalculé
 automatiquement par l'API toutes les 5 minutes (`DRIFT_CHECK_INTERVAL_SECONDS`) à
-partir des prédictions récentes, exposé sur `/metrics`, et visible sur le dashboard
-Grafana provisionné.
+partir des prédictions récentes, exposé sur `/metrics` **et** poussé vers Cloud
+Monitoring, visible sur le dashboard Grafana provisionné
+(`monitoring/grafana/dashboards/predictmaint-cloud-monitoring.json`).
+
+> La stack Docker Compose locale reste inchangée : Prometheus + Grafana + `/metrics`
+> au format Prometheus, pour une démonstration locale autonome sans credentials GCP.
+> Le choix Cloud Monitoring ne concerne que le déploiement GCP.
 
 Puis, déployer le dashboard (public, pour la démonstration) — nécessite que l'API ait déjà été déployée à l'étape précédente :
 
@@ -131,8 +141,14 @@ Variables :
 
 Le workflow déclenché par chaque push sur `main` construit le trainer, exécute le Cloud Run
 Job avec les nouvelles données labellisées du bucket de télémétrie, applique le quality gate,
-puis déploie des images API et Streamlit immuables taguées par SHA. Le dashboard est public
-pour la présentation ; l'API reste privée et reçoit un jeton d'identité du dashboard.
+puis déploie des images API, Streamlit et Grafana immuables taguées par SHA. Le dashboard
+et Grafana sont publics pour la présentation ; l'API reste privée et reçoit un jeton
+d'identité de chacun d'eux. Grafana est déployé en best-effort (`continue-on-error`) :
+un échec sur cette étape ne bloque pas le déploiement de l'API et du dashboard, qui
+restent la voie critique. Le compte de service déployeur a besoin de
+`roles/secretmanager.admin` pour gérer le mot de passe admin Grafana (ajouté par
+`bootstrap.sh`), et le compte `runtime` de `roles/monitoring.metricWriter` /
+`roles/monitoring.viewer` (idem) pour Cloud Monitoring.
 
 Configuration minimale recommandée dans GitHub :
 

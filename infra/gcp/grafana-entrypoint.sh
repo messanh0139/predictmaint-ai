@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-: "${PROMETHEUS_URL:?Set PROMETHEUS_URL}"
+: "${GCP_PROJECT_ID:?Set GCP_PROJECT_ID}"
 
-sed "s#__PROMETHEUS_URL__#${PROMETHEUS_URL}#g" \
-  /etc/grafana/provisioning/datasources/prometheus.yml.template \
-  > /etc/grafana/provisioning/datasources/prometheus.yml
+sed "s#__PROJECT_ID__#${GCP_PROJECT_ID}#g" \
+  /etc/grafana/provisioning/datasources/cloud-monitoring.yml.template \
+  > /etc/grafana/provisioning/datasources/cloud-monitoring.yml
 
 exec /run.sh

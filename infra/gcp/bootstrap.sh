@@ -44,6 +44,15 @@ gcloud storage buckets add-iam-policy-binding "gs://$TELEMETRY_BUCKET" \
   --member="serviceAccount:$RUNTIME_EMAIL" \
   --role="roles/storage.objectCreator" >/dev/null
 
+# Runtime : l'API pousse ses métriques custom (drift, prédictions, état du modèle) vers
+# Cloud Monitoring, et Grafana (même compte) les lit — voir api/cloud_monitoring.py.
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:$RUNTIME_EMAIL" \
+  --role="roles/monitoring.metricWriter" >/dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:$RUNTIME_EMAIL" \
+  --role="roles/monitoring.viewer" >/dev/null
+
 # Trainer : lecture télémétrie labellisée et écriture des artefacts modèles versionnés.
 gcloud storage buckets add-iam-policy-binding "gs://$TELEMETRY_BUCKET" \
   --member="serviceAccount:$TRAINER_EMAIL" \
@@ -72,6 +81,11 @@ gcloud iam service-accounts add-iam-policy-binding "$TRAINER_EMAIL" \
 gcloud projects add-iam-policy-binding "$PROJECT_ID" \
   --member="serviceAccount:$DEPLOYER_EMAIL" \
   --role="roles/run.invoker" >/dev/null
+# Requis pour créer/gérer le secret du mot de passe admin Grafana lors du déploiement
+# CI/CD (voir .github/workflows/deploy.yml, étape "Deploy Grafana").
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:$DEPLOYER_EMAIL" \
+  --role="roles/secretmanager.admin" >/dev/null
 
 # Le Scheduler sera autorisé à invoquer le job après création du job.
 
