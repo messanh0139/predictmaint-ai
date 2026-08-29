@@ -6,7 +6,7 @@
 - schéma complet ;
 - aucune clé `(engine_id, cycle)` dupliquée ;
 - aucune valeur manquante/non finie brute ;
-- reconstruction/alignement du RUL testés sur données synthétiques sans ouvrir la vérité terrain NASA pendant la CI ;
+- reconstruction/alignement du RUL testés sur données synthétiques sans ouvrir la vérité terrain réelle pendant la CI ;
 - partitions train/calibration/validation sans moteur commun.
 
 ## Tests features
@@ -39,4 +39,4 @@
 
 ## CI
 
-La CI exécute lint, tests, préparation des données, sélection de variables, entraînement et quality gate validation. Le holdout NASA n'est pas utilisé dans la CI courante.
+La CI exécute lint, tests, préparation des données, sélection de variables, entraînement et quality gate validation. Le holdout externe n'est pas utilisé dans la CI courante.

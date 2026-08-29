@@ -199,7 +199,7 @@ def main() -> None:
         "selected_features": features,
         "validation_metrics": best["row"],
         "failure_window": FAILURE_WINDOW,
-        "dataset": "NASA C-MAPSS FD001",
+        "dataset": "FD001",
         "dataset_manifest_sha256": split_manifest["manifest_sha256"],
         "raw_sha256": split_manifest["raw_sha256"],
         "anti_leakage": [
@@ -208,7 +208,7 @@ def main() -> None:
             "feature selection fit on train only",
             "imputer/scaler fit inside train pipelines",
             "threshold fit on dedicated calibration engines, not validation",
-            "NASA test excluded from model development",
+            "external test dataset excluded from model development",
         ],
     }
     (MODELS_DIR / "model_metadata.json").write_text(

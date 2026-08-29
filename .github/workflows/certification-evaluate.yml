@@ -1,4 +1,4 @@
-name: Locked NASA Holdout Evaluation
+name: Locked External Holdout Evaluation
 
 on:
   workflow_dispatch:
@@ -23,7 +23,7 @@ jobs:
           python -m src.features.select_features
           python -m src.models.train
           python -m src.models.quality_gate
-      - name: Consume external NASA holdout explicitly
+      - name: Consume external holdout explicitly
         run: python -m src.models.evaluate
       - name: Consolidate certification validation report
         run: python scripts/validate_project.py

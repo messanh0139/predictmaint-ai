@@ -1,5 +1,5 @@
 {
-  "champion": "optimized-b623fc94786a",
+  "champion": "optimized-302137b8230f",
   "versions": [
     {
       "version": "optimized-b623fc94786a",
@@ -26,6 +26,62 @@
       },
       "artifact": "models/registry/optimized-b623fc94786a/model.joblib",
       "metadata": "models/registry/optimized-b623fc94786a/metadata.json"
+    },
+    {
+      "version": "baseline-c193920b2073",
+      "model_name": "random_forest",
+      "model_sha256": "798aa53c40b5bea39768b2dd90a48ab913268e544e8d7363b53d24a9838c7a5d",
+      "dataset_manifest_sha256": "c193920b207381b7799eb13d3fbdfb2732337b5a31d42645a670488b43661a43",
+      "validation_metrics": {
+        "name": "random_forest",
+        "threshold_source": "dedicated calibration engines",
+        "calibration_pr_auc": 0.9588304542717425,
+        "calibration_recall": 0.9935483870967742,
+        "threshold": 0.12,
+        "precision": 0.6411347517730497,
+        "recall": 0.9720430107526882,
+        "specificity": 0.9026548672566371,
+        "balanced_accuracy": 0.9373489390046627,
+        "f1": 0.7726495726495727,
+        "mcc": 0.745639935474043,
+        "roc_auc": 0.9879420124365449,
+        "pr_auc": 0.9496370811862015,
+        "brier": 0.02783231570543072,
+        "tn": 2346,
+        "fp": 253,
+        "fn": 13,
+        "tp": 452,
+        "business_cost": 256500.0,
+        "business_cost_per_1000": 83714.09921671018
+      },
+      "artifact": "models/registry/baseline-c193920b2073/model.joblib",
+      "metadata": "models/registry/baseline-c193920b2073/metadata.json"
+    },
+    {
+      "version": "optimized-302137b8230f",
+      "model_name": "xgboost_optimized",
+      "model_sha256": "febd589107cb2cf208893e01c7c79178dc796cfc4b891885c1cb8204b15edd4d",
+      "dataset_manifest_sha256": "2979abf273c43d175b197185912fe824d39c28584c47409435123fe470daae95",
+      "validation_metrics": {
+        "threshold": 0.002844517994672067,
+        "precision": 0.5636363636363636,
+        "recall": 1.0,
+        "specificity": 0.8614851866102347,
+        "balanced_accuracy": 0.9307425933051173,
+        "f1": 0.7209302325581395,
+        "mcc": 0.6968244957717739,
+        "roc_auc": 0.9881335666737,
+        "pr_auc": 0.9459492868527207,
+        "brier": 0.03116403697351666,
+        "tn": 2239,
+        "fp": 360,
+        "fn": 0,
+        "tp": 465,
+        "business_cost": 180000.0,
+        "business_cost_per_1000": 58746.7362924282
+      },
+      "artifact": "models/registry/optimized-302137b8230f/model.joblib",
+      "metadata": "models/registry/optimized-302137b8230f/metadata.json"
     }
   ]
 }

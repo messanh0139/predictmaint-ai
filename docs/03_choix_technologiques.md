@@ -1,4 +1,4 @@
-# C5.1.3 — Choix technologiques et algorithmiques
+# Choix technologiques et algorithmiques
 
 | Besoin | Choix | Avantages | Limites / alternative |
 |---|---|---|---|

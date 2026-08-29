@@ -1,4 +1,4 @@
-# Résultats EDA — NASA C-MAPSS FD001
+# Résultats EDA — jeu de données FD001
 
 ## Structure et qualité
 

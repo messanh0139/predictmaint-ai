@@ -41,7 +41,7 @@ def build_feedback_feature_dataset(predictions: list[dict], feedback: list[dict]
         history = pred.get("raw_history")
         if not fb or not history:
             continue
-        # Décalage d'ID pour éviter tout chevauchement avec les moteurs NASA.
+        # Décalage d'ID pour éviter tout chevauchement avec les moteurs du dataset.
         production_engine_id = 1_000_000 + int(pred["engine_id"])
         raw = pd.DataFrame(
             [{ID_COL: production_engine_id, **snap} for snap in history]
@@ -55,6 +55,45 @@ def build_feedback_feature_dataset(predictions: list[dict], feedback: list[dict]
     out = pd.concat(rows, ignore_index=True)
     # Une seule vérité terrain par moteur/cycle dans le lot de retraining.
     return out.drop_duplicates([ID_COL, "cycle"], keep="last").reset_index(drop=True)
+
+
+UPLOAD_ENGINE_ID_OFFSET = 5_000_000
+
+
+def build_uploaded_feature_dataset(raw: pd.DataFrame) -> pd.DataFrame:
+    """Construit des features causales à partir d'un lot de données labellisées téléversé.
+
+    Une ligne par moteur : l'historique complet fourni sert au feature engineering causal,
+    le label s'applique à la dernière observation de ce moteur (dernier cycle connu).
+    """
+    required = {ID_COL, "cycle", "actual_failure_within_30_cycles"}
+    missing = required - set(raw.columns)
+    if missing:
+        raise ValueError(f"Colonnes manquantes: {sorted(missing)}")
+
+    raw = raw.copy()
+    # Décalage d'ID dédié pour ne chevaucher ni les moteurs du dataset ni les IDs de la boucle
+    # de feedback par prédiction (offset 1_000_000).
+    raw[ID_COL] = UPLOAD_ENGINE_ID_OFFSET + raw[ID_COL].astype(int)
+    labels = raw.groupby(ID_COL)["actual_failure_within_30_cycles"].last()
+
+    feat = build_causal_features(raw.drop(columns=["actual_failure_within_30_cycles"]))
+    last_rows = feat.groupby(ID_COL, sort=False).tail(1).copy()
+    last_rows[TARGET_COL] = last_rows[ID_COL].map(labels).astype(int)
+    return last_rows.reset_index(drop=True)
+
+
+def append_feature_dataset(new_rows: pd.DataFrame, output: Path) -> int:
+    """Fusionne de nouvelles lignes labellisées dans le jeu de features de production."""
+    output.parent.mkdir(parents=True, exist_ok=True)
+    if output.exists():
+        existing = pd.read_csv(output)
+        combined = pd.concat([existing, new_rows], ignore_index=True)
+    else:
+        combined = new_rows
+    combined = combined.drop_duplicates([ID_COL, "cycle"], keep="last").reset_index(drop=True)
+    combined.to_csv(output, index=False)
+    return int(len(new_rows))
 
 
 def main() -> None:

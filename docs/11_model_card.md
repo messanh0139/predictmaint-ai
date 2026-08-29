@@ -2,7 +2,7 @@
 
 ## Usage prévu
 
-Priorisation de maintenance à partir de séquences de capteurs C-MAPSS FD001. Sortie : probabilité d'une défaillance dans les 30 prochains cycles.
+Priorisation de maintenance à partir de séquences de capteurs du jeu de données FD001. Sortie : probabilité d'une défaillance dans les 30 prochains cycles.
 
 ## Usage non prévu
 
@@ -10,7 +10,7 @@ Le modèle ne doit pas être utilisé tel quel pour prendre automatiquement une 
 
 ## Données
 
-NASA C-MAPSS FD001, données simulées run-to-failure. Empreintes SHA256 stockées dans `data/processed/split_manifest.json` et `models/model_metadata.json`.
+Jeu de données FD001, données simulées run-to-failure. Empreintes SHA256 stockées dans `data/processed/split_manifest.json` et `models/model_metadata.json`.
 
 ## Métriques
 
@@ -22,7 +22,7 @@ Le seuil est ajusté uniquement sur la partition CALIBRATION, indépendante du T
 
 ## Validation
 
-La sélection du champion se fait sur une partition VALIDATION par moteurs distincts. Le test NASA constitue un holdout externe explicitement séparé.
+La sélection du champion se fait sur une partition VALIDATION par moteurs distincts. Le test externe constitue un holdout explicitement séparé.
 
 ## Limites
 

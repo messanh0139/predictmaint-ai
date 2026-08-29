@@ -126,7 +126,7 @@ def main(n_trials: int = 30) -> None:
         "business_cost_gain_pct_vs_default_xgboost": business_cost_gain_pct,
         "recall_gain_vs_default_xgboost": None if baseline_xgb is None else float(val_metrics["recall"] - float(baseline_xgb["recall"])),
         "candidate_path": str(candidate_path),
-        "note": "Le test NASA n'est jamais consulté pendant Optuna, le choix du seuil ou la promotion.",
+        "note": "Le jeu de test externe n'est jamais consulté pendant Optuna, le choix du seuil ou la promotion.",
     }
     (MODELS_DIR / "optimization_report.json").write_text(
         json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8"

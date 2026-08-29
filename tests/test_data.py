@@ -35,7 +35,7 @@ def test_two_way_group_split_compatibility():
 
 
 def test_test_rul_reconstruction_on_synthetic_holdout():
-    # Test de la formule sans ouvrir la vérité terrain NASA réelle.
+    # Test de la formule sans ouvrir la vérité terrain réelle du holdout externe.
     test = pd.DataFrame(
         {
             "engine_id": [1, 1, 1, 2, 2],

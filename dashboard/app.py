@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -14,6 +15,10 @@ API_AUDIENCE = os.getenv("API_AUDIENCE", "").strip()
 DATA_PATH = Path(os.getenv("DEMO_DATA_PATH", "/app/data/raw/test_FD001.txt"))
 METADATA_PATH = Path(os.getenv("MODEL_METADATA_PATH", "/app/models/model_metadata.json"))
 METRICS_PATH = Path(os.getenv("TEST_METRICS_PATH", "/app/models/test_metrics.json"))
+PROMETHEUS_URL = os.getenv("PROMETHEUS_URL", "http://localhost:9090")
+GRAFANA_URL = os.getenv("GRAFANA_URL", "http://localhost:3001")
+MLFLOW_URL = os.getenv("MLFLOW_URL", "http://localhost:5000")
+API_DOCS_URL = os.getenv("API_DOCS_URL", "http://localhost:8081/docs")
 
 BASE_COLUMNS = [
     "engine_id",
@@ -111,6 +116,35 @@ def api_post(path: str, payload: dict) -> tuple[dict, str | None]:
         return {}, f"{exc}{detail}"
 
 
+def api_post_file(path: str, filename: str, content: bytes) -> tuple[dict, str | None]:
+    try:
+        response = requests.post(
+            f"{API_URL}{path}",
+            files={"file": (filename, content, "text/csv")},
+            headers=api_headers(),
+            timeout=60,
+        )
+        response.raise_for_status()
+        return response.json(), None
+    except (requests.RequestException, RuntimeError) as exc:
+        detail = ""
+        if getattr(exc, "response", None) is not None:
+            detail = f" — {exc.response.text}"
+        return {}, f"{exc}{detail}"
+
+
+def build_sample_upload(demo_data: pd.DataFrame) -> bytes:
+    """Génère un CSV d'exemple illustrant le format attendu (données du dataset + label)."""
+    sample_engines = demo_data["engine_id"].drop_duplicates().head(3).astype(int).tolist()
+    rows = demo_data[demo_data["engine_id"].astype(int).isin(sample_engines)].copy()
+    rows["engine_id"] = rows["engine_id"].astype(int)
+    labels = {engine: int(index % 2 == 0) for index, engine in enumerate(sample_engines)}
+    rows["actual_failure_within_30_cycles"] = rows["engine_id"].map(labels)
+    return rows[BASE_COLUMNS + ["actual_failure_within_30_cycles"]].to_csv(index=False).encode(
+        "utf-8"
+    )
+
+
 metadata = load_json(METADATA_PATH)
 test_metrics = load_json(METRICS_PATH)
 health, health_error = api_get("/ready")
@@ -127,16 +161,16 @@ with st.sidebar:
     st.divider()
     st.markdown("**Écosystème MLOps**")
     st.markdown(
-        """
-        <a class="service-link" href="http://localhost:9090" target="_blank">Prometheus ↗</a>
-        <a class="service-link" href="http://localhost:3001" target="_blank">Grafana ↗</a>
-        <a class="service-link" href="http://localhost:5000" target="_blank">MLflow ↗</a>
-        <a class="service-link" href="http://localhost:8081/docs" target="_blank">Documentation API ↗</a>
+        f"""
+        <a class="service-link" href="{PROMETHEUS_URL}" target="_blank">Prometheus ↗</a>
+        <a class="service-link" href="{GRAFANA_URL}" target="_blank">Grafana ↗</a>
+        <a class="service-link" href="{MLFLOW_URL}" target="_blank">MLflow ↗</a>
+        <a class="service-link" href="{API_DOCS_URL}" target="_blank">Documentation API ↗</a>
         """,
         unsafe_allow_html=True,
     )
     st.divider()
-    st.caption("Données de démonstration : NASA C-MAPSS FD001")
+    st.caption("Données de démonstration : jeu de données FD001")
 
 st.markdown(
     """
@@ -154,8 +188,13 @@ metric_columns[1].metric("Recall test", f"{test_metrics.get('recall', 0):.1%}")
 metric_columns[2].metric("PR-AUC test", f"{test_metrics.get('pr_auc', 0):.3f}")
 metric_columns[3].metric("Fenêtre d'alerte", f"{metadata.get('failure_window', 30)} cycles")
 
-prediction_tab, performance_tab, architecture_tab = st.tabs(
-    ["🔎 Démonstration prédictive", "📊 Performance", "🔗 Parcours de présentation"]
+prediction_tab, performance_tab, retrain_tab, architecture_tab = st.tabs(
+    [
+        "🔎 Démonstration prédictive",
+        "📊 Performance",
+        "🔄 Réentraînement automatique",
+        "🔗 Parcours de présentation",
+    ]
 )
 
 with prediction_tab:
@@ -167,7 +206,7 @@ with prediction_tab:
         demo_data = load_demo_data(DATA_PATH)
         selector_col, cycle_col = st.columns([1, 2])
         engine_id = selector_col.selectbox(
-            "Moteur NASA",
+            "Moteur",
             options=demo_data["engine_id"].drop_duplicates().astype(int).tolist(),
         )
         engine_data = demo_data[demo_data["engine_id"] == engine_id].copy()
@@ -256,9 +295,73 @@ with performance_tab:
     ).set_index("Cas")
     st.bar_chart(confusion, horizontal=True, height=280)
     st.info(
-        "Le seuil a été appris sur un ensemble de calibration dédié. Le holdout NASA externe "
+        "Le seuil a été appris sur un ensemble de calibration dédié. Le holdout externe verrouillé "
         "est réservé à l'évaluation finale et n'est pas utilisé pour ajuster le modèle."
     )
+
+with retrain_tab:
+    st.subheader("Déclenchement automatique du réentraînement")
+    st.markdown(
+        "Téléverser un fichier CSV de nouvelles données de production **déclenche "
+        "immédiatement et automatiquement** le pipeline complet "
+        "(préparation → sélection de variables → entraînement → quality gate → "
+        "enregistrement), sans action supplémentaire."
+    )
+    st.caption(
+        "Colonnes attendues : `engine_id`, `cycle`, `setting_1..3`, `sensor_1..21`, "
+        "`actual_failure_within_30_cycles` (0 ou 1, un label par moteur)."
+    )
+
+    if DATA_PATH.exists():
+        sample_bytes = build_sample_upload(load_demo_data(DATA_PATH))
+        st.download_button(
+            "Télécharger un exemple de fichier",
+            data=sample_bytes,
+            file_name="nouvelles_donnees_exemple.csv",
+            mime="text/csv",
+            help="Exemple illustratif au format attendu, à utiliser pour la démonstration.",
+        )
+
+    uploaded_file = st.file_uploader("Nouvelles données de production (CSV)", type=["csv"])
+    if uploaded_file is not None:
+        file_signature = f"{uploaded_file.name}:{uploaded_file.size}"
+        if st.session_state.get("retrain_upload_signature") != file_signature:
+            st.session_state["retrain_upload_signature"] = file_signature
+            with st.spinner("Envoi du fichier et déclenchement automatique du pipeline..."):
+                trigger_result, trigger_error = api_post_file(
+                    "/retrain/upload", uploaded_file.name, uploaded_file.getvalue()
+                )
+            if trigger_error:
+                st.error(f"Échec du déclenchement : {trigger_error}")
+            else:
+                st.session_state["retrain_triggered"] = True
+                st.success(
+                    f"{trigger_result.get('rows_added', 0)} moteur(s) intégré(s). "
+                    "Réentraînement déclenché automatiquement."
+                )
+
+    if st.session_state.get("retrain_triggered"):
+        status, status_error = api_get("/retrain/status")
+        if status_error:
+            st.error(f"Statut indisponible : {status_error}")
+        elif status:
+            state = status.get("state")
+            if state == "running":
+                st.info(
+                    f"Réentraînement en cours (démarré à {status.get('started_at')})… "
+                    "cette page se met à jour automatiquement."
+                )
+                time.sleep(2)
+                st.rerun()
+            elif state == "completed":
+                st.success(
+                    f"Réentraînement terminé. Nouveau modèle champion : "
+                    f"`{status.get('model_version')}`."
+                )
+                st.session_state["retrain_triggered"] = False
+            elif state == "failed":
+                st.error(f"Échec du réentraînement : {status.get('error')}")
+                st.session_state["retrain_triggered"] = False
 
 with architecture_tab:
     st.subheader("Scénario conseillé pour la soutenance")

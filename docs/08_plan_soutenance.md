@@ -1,4 +1,4 @@
-# Plan de soutenance — Bloc 5 (30 min)
+# Plan de soutenance (30 min)
 
 ## 1. Besoin et faisabilité — 3 min
 
@@ -23,7 +23,7 @@
 
 ## 4. Data leakage — 3 min
 
-Présenter le schéma TRAIN / CALIBRATION / VALIDATION / TEST NASA et démontrer que les moteurs sont disjoints. Montrer le test de causalité des features.
+Présenter le schéma TRAIN / CALIBRATION / VALIDATION / TEST EXTERNE et démontrer que les moteurs sont disjoints. Montrer le test de causalité des features.
 
 ## 5. Feature engineering et sélection — 4 min
 
@@ -75,4 +75,4 @@ Présenter le schéma TRAIN / CALIBRATION / VALIDATION / TEST NASA et démontrer
 - Comment détecter un drift en production ?
 - Que se passe-t-il si un nouveau modèle échoue au quality gate ?
 - Pourquoi Cloud Run plutôt que Kubernetes ?
-- Comment garantir que le test NASA n'a pas influencé le développement ?
+- Comment garantir que le test externe n'a pas influencé le développement ?

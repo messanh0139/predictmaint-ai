@@ -15,7 +15,7 @@ from src.models.common import load_selected_features, metrics, xy
 
 
 def main() -> None:
-    """Évaluation finale EXTERNE sur le holdout NASA.
+    """Évaluation finale EXTERNE sur le holdout verrouillé.
 
     Le holdout est chargé et labellisé ici, au dernier moment. Cette commande ne
     fait partie ni du retraining automatique ni du quality gate de déploiement.
@@ -39,7 +39,7 @@ def main() -> None:
             "evaluated_at_utc": datetime.now(timezone.utc).isoformat(),
             "model_name": metadata["model_name"],
             "model_version": metadata.get("model_version"),
-            "dataset": "NASA C-MAPSS FD001 external holdout",
+            "dataset": "FD001 external holdout",
             "locked_external_holdout": True,
             "holdout_loaded_only_at_evaluation": True,
             "raw_test_quality": test_quality,

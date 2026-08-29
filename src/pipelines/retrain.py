@@ -1,7 +1,7 @@
-"""Pipeline de réentraînement reproductible sans consommation du holdout externe NASA.
+"""Pipeline de réentraînement reproductible sans consommation du holdout externe.
 
-Le test NASA est volontairement absent de cette liste : il sert à la preuve finale de
-certification et ne doit pas devenir un signal d'optimisation au fil des itérations.
+Le jeu de test externe est volontairement absent de cette liste : il sert à la preuve
+finale de certification et ne doit pas devenir un signal d'optimisation au fil des itérations.
 """
 from __future__ import annotations
 

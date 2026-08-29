@@ -22,7 +22,7 @@ L'EDA supervisée elle-même peut devenir une source de fuite si l'on regarde VA
 7. modèle fit sur TRAIN ;
 8. seuil choisi sur CALIBRATION ;
 9. champion choisi sur VALIDATION ;
-10. holdout NASA et sa vérité terrain ouverts seulement pour l'évaluation externe finale ; aucun `test_features.csv` n'est matérialisé dans le pipeline de développement.
+10. holdout externe et sa vérité terrain ouverts seulement pour l'évaluation externe finale ; aucun `test_features.csv` n'est matérialisé dans le pipeline de développement.
 
 ## Traçabilité
 

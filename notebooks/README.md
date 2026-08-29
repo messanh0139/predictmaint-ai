@@ -6,7 +6,7 @@ Les notebooks sont volontairement pédagogiques : ils montrent les opérations i
 2. `02_feature_engineering.ipynb` — split avant transformation, features causales et test de causalité.
 3. `03_feature_selection.ipynb` — cinq méthodes de sélection, fit sur TRAIN uniquement.
 4. `04_model_training.ipynb` — baseline explicite, calibration du seuil et comparaison des modèles.
-5. `05_model_evaluation.ipynb` — optimisation/promotion puis ouverture contrôlée du holdout NASA.
+5. `05_model_evaluation.ipynb` — optimisation/promotion puis ouverture contrôlée du holdout externe.
 6. `06_monitoring.ipynb` — PSI, drift, performance différée et boucle MLOps.
 
 ## Contrat méthodologique commun
@@ -15,7 +15,7 @@ Les notebooks sont volontairement pédagogiques : ils montrent les opérations i
 - Les features sont causales et calculées séparément dans chaque partition.
 - La sélection des variables, l'imputation, la standardisation et le modèle sont ajustés sur TRAIN uniquement.
 - CALIBRATION sert exclusivement à choisir le seuil de décision.
-- VALIDATION sert à comparer et promouvoir les candidats ; le holdout NASA n'est ouvert qu'ensuite dans le notebook 05.
+- VALIDATION sert à comparer et promouvoir les candidats ; le holdout externe n'est ouvert qu'ensuite dans le notebook 05.
 
 Construire un objet `Pipeline` avant de charger les partitions n'est pas une fuite : aucun paramètre n'est appris avant `fit(X_train, y_train)`. Les transformations appliquées ensuite à CALIBRATION, VALIDATION et au holdout réutilisent les paramètres appris sur TRAIN.
 

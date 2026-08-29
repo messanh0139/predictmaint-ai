@@ -1,4 +1,4 @@
-# C5.3.2 — Déploiement Google Cloud Platform
+# Déploiement Google Cloud Platform
 
 ## Architecture cible
 
@@ -54,12 +54,21 @@ python -m src.models.train
 python -m src.models.quality_gate
 ```
 
-Puis :
+Puis, déployer l'API (privée) :
 
 ```bash
 export PROJECT_ID="votre-projet"
 ./infra/gcp/deploy.sh
 ```
+
+Puis, déployer le dashboard (public, pour la démonstration) — nécessite que l'API ait déjà été déployée à l'étape précédente :
+
+```bash
+export PROJECT_ID="votre-projet"
+./infra/gcp/deploy_dashboard.sh
+```
+
+Le script résout automatiquement l'URL de l'API déployée, autorise le compte de service runtime à l'invoquer, puis déploie le dashboard avec `--allow-unauthenticated` et affiche son URL publique.
 
 ## GitHub Actions
 
@@ -104,7 +113,7 @@ Variables
 
 ## Test externe et CI/CD
 
-Le holdout NASA n'est **pas** utilisé comme quality gate de déploiement. Le workflow manuel `certification-evaluate.yml` est séparé afin d'éviter de tuner indirectement sur le test.
+Le holdout externe n'est **pas** utilisé comme quality gate de déploiement. Le workflow manuel `certification-evaluate.yml` est séparé afin d'éviter de tuner indirectement sur le test.
 
 ## Monitoring et jobs
 
@@ -156,4 +165,4 @@ Le job :
 5. applique champion/challenger et quality gate ;
 6. enregistre la nouvelle version et la persiste dans le bucket modèle.
 
-La VALIDATION et le holdout NASA restent inchangés.
+La VALIDATION et le holdout externe restent inchangés.

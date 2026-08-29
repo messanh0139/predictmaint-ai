@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import io
 import json
 import logging
 import os
+import subprocess
+import sys
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -11,11 +15,12 @@ from uuid import uuid4
 
 import joblib
 import pandas as pd
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
 from pydantic import BaseModel, Field, model_validator
 from starlette.responses import Response
 
+from src.data.collect_feedback import append_feature_dataset, build_uploaded_feature_dataset
 from src.features.build_features import build_causal_features
 
 MODEL_PATH = Path(os.getenv("MODEL_PATH", "models/model.joblib"))
@@ -23,6 +28,9 @@ METADATA_PATH = Path(os.getenv("MODEL_METADATA_PATH", "models/model_metadata.jso
 PREDICTION_LOG_PATH = Path(os.getenv("PREDICTION_LOG_PATH", "/tmp/predictions.jsonl"))
 FEEDBACK_LOG_PATH = Path(os.getenv("FEEDBACK_LOG_PATH", "/tmp/feedback.jsonl"))
 PREDICTION_BUCKET = os.getenv("PREDICTION_BUCKET")
+PRODUCTION_FEATURES_PATH = Path(
+    os.getenv("SUPPLEMENTAL_FEATURES_PATH", "data/production/feedback_features.csv")
+)
 
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
@@ -33,7 +41,7 @@ logger = logging.getLogger("predictmaint")
 app = FastAPI(
     title="PredictMaint AI",
     version="2.0.0",
-    description="API de maintenance prédictive NASA C-MAPSS FD001.",
+    description="API de maintenance prédictive sur le jeu de données FD001.",
 )
 
 PREDICTIONS = Counter("predictmaint_predictions_total", "Nombre de prédictions", ["risk"])
@@ -148,6 +156,43 @@ def _persist_record(record: dict, local_path: Path, gcs_prefix: str) -> None:
             logger.exception("GCS telemetry persistence failed")
 
 
+_retrain_lock = threading.Lock()
+_retrain_status: dict = {
+    "state": "idle",
+    "started_at": None,
+    "finished_at": None,
+    "rows_added": 0,
+    "error": None,
+    "model_version": None,
+}
+
+
+def _run_retrain_job(rows_added: int) -> None:
+    _retrain_status.update(
+        state="running",
+        started_at=datetime.now(timezone.utc).isoformat(),
+        finished_at=None,
+        rows_added=rows_added,
+        error=None,
+    )
+    try:
+        env = {**os.environ, "INCLUDE_PRODUCTION_FEEDBACK": "1"}
+        subprocess.run([sys.executable, "-m", "src.pipelines.retrain"], check=True, env=env)
+        _, metadata = load_assets(force=True)
+        _retrain_status.update(
+            state="completed",
+            finished_at=datetime.now(timezone.utc).isoformat(),
+            model_version=metadata.get("model_version"),
+        )
+    except Exception as exc:
+        logger.exception("automatic retrain failed")
+        _retrain_status.update(
+            state="failed", finished_at=datetime.now(timezone.utc).isoformat(), error=str(exc)
+        )
+    finally:
+        _retrain_lock.release()
+
+
 @app.get("/live")
 def liveness():
     return {"status": "alive"}
@@ -187,6 +232,39 @@ def feedback(payload: FeedbackRequest):
     }
     _persist_record(record, FEEDBACK_LOG_PATH, "feedback")
     return {"status": "recorded", **record}
+
+
+@app.post("/retrain/upload")
+async def retrain_upload(file: UploadFile = File(...)):
+    if not _retrain_lock.acquire(blocking=False):
+        raise HTTPException(status_code=409, detail="Un réentraînement est déjà en cours.")
+    try:
+        content = await file.read()
+        try:
+            raw = pd.read_csv(io.BytesIO(content))
+        except Exception as exc:
+            raise HTTPException(status_code=422, detail=f"CSV illisible: {exc}") from exc
+        try:
+            new_rows = build_uploaded_feature_dataset(raw)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        rows_added = append_feature_dataset(new_rows, PRODUCTION_FEATURES_PATH)
+    except HTTPException:
+        _retrain_lock.release()
+        raise
+    except Exception:
+        _retrain_lock.release()
+        raise
+
+    thread = threading.Thread(target=_run_retrain_job, args=(rows_added,), daemon=True)
+    thread.start()
+    logger.info("automatic retrain triggered rows_added=%s", rows_added)
+    return {"status": "retrain_triggered", "rows_added": rows_added}
+
+
+@app.get("/retrain/status")
+def retrain_status():
+    return _retrain_status
 
 
 @app.post("/predict", response_model=PredictionResponse)

@@ -1,4 +1,4 @@
-# C5.1.2 — Stratégie de résolution du problème
+# Stratégie de résolution du problème
 
 ## Formulation
 
@@ -28,7 +28,7 @@ Le seuil de décision est donc choisi pour minimiser le coût sous contrainte de
 7. comparaison des modèles sur VALIDATION ;
 8. optimisation XGBoost avec Optuna et validation croisée groupée uniquement sur TRAIN ;
 9. champion/challenger : promotion seulement si les guardrails et le score métier sont meilleurs ;
-10. test NASA externe après verrouillage.
+10. test externe après verrouillage.
 
 ## Pourquoi plusieurs modèles
 

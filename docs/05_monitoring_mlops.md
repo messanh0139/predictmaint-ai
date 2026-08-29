@@ -1,4 +1,4 @@
-# C5.3.3 / C5.3.4 — Monitoring et cycle MLOps
+# Monitoring et cycle MLOps
 
 ## Trois niveaux de monitoring
 
@@ -34,7 +34,7 @@ En Cloud Run, le système de fichiers local est éphémère : `PREDICTION_BUCKET
 
 `src/pipelines/retrain.py` exécute préparation, sélection, entraînement, optimisation optionnelle, promotion et quality gate.
 
-Le holdout NASA est volontairement absent de ce pipeline.
+Le holdout externe est volontairement absent de ce pipeline.
 
 ## Politique de promotion
 

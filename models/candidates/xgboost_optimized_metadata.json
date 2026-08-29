@@ -1,6 +1,9 @@
 {
   "name": "xgboost_optimized",
+  "dataset_manifest_sha256": "2979abf273c43d175b197185912fe824d39c28584c47409435123fe470daae95",
+  "cv_folds": 5,
   "threshold": 0.002844517994672067,
+  "threshold_source": "dedicated calibration engines",
   "calibration_metrics": {
     "threshold": 0.002844517994672067,
     "precision": 0.6100131752305665,
@@ -88,8 +91,5 @@
     "min_child_weight": 9.053446153848839,
     "reg_alpha": 0.04751937318279559,
     "reg_lambda": 4.869640941520899
-  },
-  "threshold_source": "dedicated calibration engines",
-  "dataset_manifest_sha256": "b623fc94786a5dc4373c4e9e958c4d25c4a7e62764b087f86925edec4ede5527",
-  "cv_folds": 5
+  }
 }

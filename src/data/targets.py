@@ -15,9 +15,9 @@ def add_train_targets(df: pd.DataFrame, failure_window: int = FAILURE_WINDOW) ->
 
 
 def add_test_targets(test_df: pd.DataFrame, rul_last: pd.DataFrame, failure_window: int = FAILURE_WINDOW) -> pd.DataFrame:
-    """Reconstruit le RUL vrai de chaque ligne du test NASA.
+    """Reconstruit le RUL vrai de chaque ligne du jeu de test externe.
 
-    Pour un moteur, NASA donne le RUL au dernier cycle observé. Pour une ligne antérieure :
+    Pour un moteur, le RUL au dernier cycle observé est fourni par le dataset. Pour une ligne antérieure :
     RUL_ligne = (dernier_cycle_observe - cycle) + RUL_dernier_cycle.
     """
     out = test_df.copy()

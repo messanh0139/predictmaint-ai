@@ -107,7 +107,7 @@ def main() -> int:
             "registered_versions": [x.get("version") for x in registry.get("versions", [])],
         },
         "notes": [
-            "External NASA test is excluded from retraining and deployment quality gates.",
+            "External test dataset is excluded from retraining and deployment quality gates.",
             "Monitoring replays the threshold stored with each prediction, including multi-version batches.",
             "GCP deployment assets are prepared but require the user's Google Cloud project and credentials.",
             "MLflow/GCS integrations activate when their dependencies and environment variables are configured.",

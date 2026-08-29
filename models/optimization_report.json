@@ -12,6 +12,8 @@
   "cv_pr_auc_mean": 0.9549591047903968,
   "cv_pr_auc_std": 0.014348091957665982,
   "n_trials": 10,
+  "cv_folds": 5,
+  "dataset_manifest_sha256": "2979abf273c43d175b197185912fe824d39c28584c47409435123fe470daae95",
   "threshold": 0.002844517994672067,
   "threshold_source": "dedicated calibration engines",
   "calibration_metrics": {
@@ -73,11 +75,9 @@
     "business_cost_per_1000": 85672.32375979112
   },
   "pr_auc_gain_vs_default_xgboost": -0.0026569688282396253,
-  "candidate_path": "/mnt/data/predictmaint-ai-renforce/models/candidates/xgboost_optimized.joblib",
-  "note": "Le test NASA n'est jamais consulté pendant Optuna, le choix du seuil ou la promotion.",
   "business_cost_gain_vs_default_xgboost": 82500.0,
   "business_cost_gain_pct_vs_default_xgboost": 0.3142857142857143,
   "recall_gain_vs_default_xgboost": 0.023655913978494647,
-  "dataset_manifest_sha256": "b623fc94786a5dc4373c4e9e958c4d25c4a7e62764b087f86925edec4ede5527",
-  "cv_folds": 5
+  "candidate_path": "/home/jes/Bureau/predictmaint-ai/models/candidates/xgboost_optimized.joblib",
+  "note": "Le jeu de test externe n'est jamais consulté pendant Optuna, le choix du seuil ou la promotion."
 }

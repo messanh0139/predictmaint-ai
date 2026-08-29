@@ -9,6 +9,7 @@ COPY requirements-dashboard.txt ./
 RUN pip install --no-cache-dir -r requirements-dashboard.txt
 
 COPY dashboard ./dashboard
+COPY .streamlit ./.streamlit
 COPY data/raw/test_FD001.txt ./data/raw/test_FD001.txt
 COPY models/model_metadata.json models/test_metrics.json ./models/
 

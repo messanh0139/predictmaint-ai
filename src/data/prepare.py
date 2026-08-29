@@ -30,7 +30,7 @@ def _positive_rate(df: pd.DataFrame) -> float:
 def main() -> None:
     """Prépare uniquement les partitions de développement.
 
-    Le holdout NASA (`test_FD001.txt` + `RUL_FD001.txt`) n'est ni chargé, ni
+    Le holdout externe (`test_FD001.txt` + `RUL_FD001.txt`) n'est ni chargé, ni
     labellisé, ni matérialisé ici. Il reste fermé jusqu'à `src.models.evaluate`.
     """
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
@@ -104,7 +104,7 @@ def main() -> None:
 
     manifest = {
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
-        "dataset": "NASA C-MAPSS FD001",
+        "dataset": "FD001",
         "raw_sha256": raw_fingerprints,
         "train_engines": sorted(train_engines),
         "calibration_engines": sorted(calibration_engines),
@@ -138,7 +138,7 @@ def main() -> None:
             "selection/preprocessing/model fit on train only",
             "threshold fit on dedicated calibration engines",
             "champion decision on locked validation engines",
-            "external NASA holdout not loaded/materialized by development preparation",
+            "external holdout not loaded/materialized by development preparation",
         ],
     }
 

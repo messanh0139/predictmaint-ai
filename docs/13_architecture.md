@@ -2,12 +2,12 @@
 
 ```mermaid
 flowchart TD
-    A[NASA C-MAPSS FD001] --> B[Validation schéma + SHA256]
+    A[Jeu de données FD001] --> B[Validation schéma + SHA256]
     B --> C{Split par moteur avant features}
     C --> D[TRAIN]
     C --> E[CALIBRATION]
     C --> F[VALIDATION]
-    A --> G[TEST NASA externe]
+    A --> G[TEST EXTERNE]
 
     D --> H[Feature Engineering causal]
     E --> I[Feature Engineering causal]

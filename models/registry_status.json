@@ -1,9 +1,9 @@
 {
   "local_registry": {
-    "version": "optimized-b623fc94786a",
+    "version": "optimized-302137b8230f",
     "model_name": "xgboost_optimized",
     "model_sha256": "febd589107cb2cf208893e01c7c79178dc796cfc4b891885c1cb8204b15edd4d",
-    "dataset_manifest_sha256": "b623fc94786a5dc4373c4e9e958c4d25c4a7e62764b087f86925edec4ede5527",
+    "dataset_manifest_sha256": "2979abf273c43d175b197185912fe824d39c28584c47409435123fe470daae95",
     "validation_metrics": {
       "threshold": 0.002844517994672067,
       "precision": 0.5636363636363636,
@@ -22,15 +22,16 @@
       "business_cost": 180000.0,
       "business_cost_per_1000": 58746.7362924282
     },
-    "artifact": "models/registry/optimized-b623fc94786a/model.joblib",
-    "metadata": "models/registry/optimized-b623fc94786a/metadata.json"
+    "artifact": "models/registry/optimized-302137b8230f/model.joblib",
+    "metadata": "models/registry/optimized-302137b8230f/metadata.json"
   },
   "mlflow_registry": {
-    "status": "not_executed_in_packaging",
-    "reason": "requires configured persistent tracking backend for production"
+    "status": "failed",
+    "reason": "The saved sklearn model references untrusted types. If you are sure loading these types is safe, set the 'skops_trusted_types' parameter when calling 'log_model' or 'save_model' to the list of trusted types. Root error: Untrusted types found in the file: ['numpy.dtype', 'xgboost.core.Booster', 'xgboost.sklearn.XGBClassifier'].",
+    "tracking_uri": "sqlite:///mlflow.db"
   },
   "gcs_artifact_store": {
-    "status": "not_executed_in_packaging",
-    "reason": "requires user GCP project/bucket credentials"
+    "status": "skipped",
+    "reason": "MODEL_ARTIFACT_BUCKET not configured"
   }
 }
