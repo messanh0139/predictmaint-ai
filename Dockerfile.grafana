@@ -1,0 +1,13 @@
+FROM grafana/grafana:12.1.0
+
+USER root
+COPY monitoring/grafana/dashboards /var/lib/grafana/dashboards
+COPY monitoring/grafana/provisioning/dashboards /etc/grafana/provisioning/dashboards
+COPY monitoring/grafana/provisioning/datasources/prometheus.cloudrun.yml.template /etc/grafana/provisioning/datasources/prometheus.yml.template
+COPY infra/gcp/grafana-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh \
+    && chown -R 472:472 /etc/grafana/provisioning /var/lib/grafana/dashboards
+USER 472
+
+EXPOSE 3000
+ENTRYPOINT ["/entrypoint.sh"]

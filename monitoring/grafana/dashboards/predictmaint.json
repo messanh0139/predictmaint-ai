@@ -28,6 +28,42 @@
       "title": "Telemetry errors",
       "gridPos": {"x": 6, "y": 8, "w": 6, "h": 5},
       "targets": [{"expr": "sum(predictmaint_telemetry_errors_total)"}]
+    },
+    {
+      "type": "gauge",
+      "title": "Drift share (part des variables en dérive)",
+      "gridPos": {"x": 12, "y": 8, "w": 6, "h": 5},
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 1,
+          "unit": "percentunit",
+          "thresholds": {
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "red", "value": 0.2}
+            ]
+          }
+        }
+      },
+      "targets": [{"expr": "predictmaint_drift_share"}]
+    },
+    {
+      "type": "bargauge",
+      "title": "PSI par variable (top 15)",
+      "gridPos": {"x": 0, "y": 13, "w": 24, "h": 8},
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "thresholds": {
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "red", "value": 0.2}
+            ]
+          }
+        }
+      },
+      "targets": [{"expr": "topk(15, predictmaint_drift_psi)", "legendFormat": "{{feature}}"}]
     }
   ]
 }

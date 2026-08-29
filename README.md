@@ -376,7 +376,7 @@ Secrets nécessaires : `GCP_PROJECT_ID`, `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_
 
 Cible de déploiement : **Artifact Registry + Cloud Run**. L'API est déployée **privée** (`--no-allow-unauthenticated`) avec une identité runtime séparée de l'identité de déploiement ; le dashboard Streamlit est déployé **public** (`--allow-unauthenticated`) et invoque l'API en interne avec un jeton d'identité de son propre compte de service. L'authentification GitHub → GCP se fait par Workload Identity Federation, sans clé JSON de compte de service stockée dans le dépôt.
 
-> Ce dépôt n'est pas encore déployé sur un projet GCP en continu : la procédure de provisionnement (bootstrap, comptes de service, buckets, déploiement, job de réentraînement planifié) est prête et documentée dans `docs/06_deploiement_gcp.md`, à exécuter avec `./infra/gcp/bootstrap.sh` puis `./infra/gcp/deploy.sh` (API privée) et `./infra/gcp/deploy_dashboard.sh` (dashboard public, URL de démonstration).
+> Ce dépôt n'est pas encore déployé sur un projet GCP en continu : la procédure de provisionnement (bootstrap, comptes de service, buckets, déploiement, job de réentraînement planifié) est prête et documentée dans `docs/06_deploiement_gcp.md`, à exécuter avec `./infra/gcp/bootstrap.sh` puis `./infra/gcp/deploy.sh` (API privée), `./infra/gcp/deploy_mlflow.sh`, `./infra/gcp/deploy_prometheus.sh` et `./infra/gcp/deploy_grafana.sh` (MLOps public, optionnels) et enfin `./infra/gcp/deploy_dashboard.sh` (dashboard public, URL de démonstration).
 
 ## Notebooks
 

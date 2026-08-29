@@ -69,6 +69,39 @@ export PROJECT_ID="votre-projet"
 ./infra/gcp/deploy.sh
 ```
 
+Optionnel, déployer MLflow (public, pour la démonstration) — à faire avant le dashboard si vous voulez que son lien latéral pointe automatiquement dessus :
+
+```bash
+export PROJECT_ID="votre-projet"
+./infra/gcp/deploy_mlflow.sh
+```
+
+> MLflow n'a pas d'authentification native et son backend (sqlite local au conteneur)
+> est perdu à chaque redéploiement ou nouvelle instance : c'est un choix assumé pour
+> une démonstration, pas une installation destinée à conserver des runs de production.
+> `--allowed-hosts "*"` et `--cors-allowed-origins "*"` sont nécessaires : MLflow 3
+> bloque par défaut tout `Host` autre que `localhost`.
+
+Optionnel, déployer Prometheus puis Grafana (publics, pour la démonstration) :
+
+```bash
+export PROJECT_ID="votre-projet"
+./infra/gcp/deploy_prometheus.sh
+./infra/gcp/deploy_grafana.sh
+```
+
+`deploy_prometheus.sh` déploie Prometheus avec un script d'entrée qui renouvelle en
+continu un jeton d'identité (serveur de métadonnées GCP) pour scraper l'API privée —
+voir `infra/gcp/prometheus-entrypoint.sh`. Prometheus reste public sans authentification
+(mêmes compromis que MLflow : pas de données sensibles dedans). `deploy_grafana.sh`
+génère un mot de passe admin aléatoire stocké dans Secret Manager (affiché une seule
+fois à la fin) et pointe automatiquement le datasource vers le Prometheus déployé.
+
+Le drift des données (PSI par variable, `src/monitoring/drift.py`) est recalculé
+automatiquement par l'API toutes les 5 minutes (`DRIFT_CHECK_INTERVAL_SECONDS`) à
+partir des prédictions récentes, exposé sur `/metrics`, et visible sur le dashboard
+Grafana provisionné.
+
 Puis, déployer le dashboard (public, pour la démonstration) — nécessite que l'API ait déjà été déployée à l'étape précédente :
 
 ```bash

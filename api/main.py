@@ -22,6 +22,7 @@ from starlette.responses import Response
 
 from src.data.collect_feedback import append_feature_dataset, build_uploaded_feature_dataset
 from src.features.build_features import build_causal_features
+from src.monitoring.drift import current_features_from_prediction_log, statistical_drift_report
 
 MODEL_PATH = Path(os.getenv("MODEL_PATH", "models/model.joblib"))
 METADATA_PATH = Path(os.getenv("MODEL_METADATA_PATH", "models/model_metadata.json"))
@@ -48,6 +49,10 @@ PREDICTIONS = Counter("predictmaint_predictions_total", "Nombre de prédictions"
 LATENCY = Histogram("predictmaint_prediction_latency_seconds", "Latence de prédiction")
 TELEMETRY_ERRORS = Counter("predictmaint_telemetry_errors_total", "Erreurs de persistance télémétrie", ["sink"])
 MODEL_READY = Gauge("predictmaint_model_ready", "1 si le modèle est chargé")
+DRIFT_SHARE = Gauge("predictmaint_drift_share", "Part des variables en dérive (PSI >= seuil)")
+DRIFT_PSI = Gauge("predictmaint_drift_psi", "PSI par variable vs référence TRAIN", ["feature"])
+
+DRIFT_CHECK_INTERVAL_SECONDS = int(os.getenv("DRIFT_CHECK_INTERVAL_SECONDS", "300"))
 
 _model = None
 _metadata = None
@@ -204,6 +209,34 @@ def _run_retrain_job(rows_added: int) -> None:
         )
     finally:
         _retrain_lock.release()
+
+
+def _refresh_drift_metrics() -> None:
+    """Recalcule le PSI par variable à partir des prédictions récentes de cette instance.
+
+    Réutilise src.monitoring.drift tel quel. Le statut n'est pas mis à jour en cas de
+    volume insuffisant ou de schéma incompatible : la dernière valeur connue reste
+    affichée plutôt que de retomber artificiellement à zéro.
+    """
+    try:
+        current = current_features_from_prediction_log(PREDICTION_LOG_PATH)
+        report = statistical_drift_report(current)
+        if report["status"] not in ("ok", "alert"):
+            return
+        DRIFT_SHARE.set(report["drifted_share"])
+        for feature, value in report["psi_by_feature"].items():
+            DRIFT_PSI.labels(feature=feature).set(value)
+    except Exception:
+        logger.exception("drift metrics refresh failed")
+
+
+def _drift_monitor_loop() -> None:
+    while True:
+        _refresh_drift_metrics()
+        time.sleep(DRIFT_CHECK_INTERVAL_SECONDS)
+
+
+threading.Thread(target=_drift_monitor_loop, daemon=True).start()
 
 
 @app.get("/live")

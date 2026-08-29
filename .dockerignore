@@ -14,6 +14,9 @@ data/raw/*
 !data/raw/train_FD001.txt
 !data/raw/test_FD001.txt
 !data/raw/RUL_FD001.txt
+!data/reference
+data/reference/*
+!data/reference/reference_features.csv
 monitoring/evidently/reports
 *.pyc
 *.ipynb
