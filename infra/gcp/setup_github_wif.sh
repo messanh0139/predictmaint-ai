@@ -31,6 +31,13 @@ gcloud iam service-accounts add-iam-policy-binding "$DEPLOYER_SA" \
   --role="roles/iam.workloadIdentityUser" \
   --member="$MEMBER"
 
+# Requis en plus de workloadIdentityUser pour que le workflow puisse générer un jeton
+# d'identité (gcloud auth print-identity-token --impersonate-service-account=...) afin
+# d'appeler l'API privée lors des smoke tests, même en s'auto-impersonnant.
+gcloud iam service-accounts add-iam-policy-binding "$DEPLOYER_SA" \
+  --role="roles/iam.serviceAccountTokenCreator" \
+  --member="serviceAccount:$DEPLOYER_SA"
+
 PROVIDER_RESOURCE="projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/$POOL_ID/providers/$PROVIDER_ID"
 echo "Set GitHub secret GCP_WORKLOAD_IDENTITY_PROVIDER=$PROVIDER_RESOURCE"
 echo "Set GitHub secret GCP_DEPLOYER_SERVICE_ACCOUNT=$DEPLOYER_SA"
