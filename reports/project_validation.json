@@ -1,8 +1,8 @@
 {
   "project": "PredictMaint AI",
-  "generated_at_utc": "2026-08-27T12:17:41.573194+00:00",
+  "generated_at_utc": "2026-08-29T01:07:53.071525+00:00",
   "validation_status": "PASS",
-  "automated_tests": "19 passed",
+  "automated_tests": "24 passed",
   "validation_checks": {
     "split_has_no_engine_overlap": true,
     "manifest_matches_model_metadata": true,
@@ -20,7 +20,7 @@
     "grafana_provisioning_present": true,
     "automated_tests_passed": true
   },
-  "data_manifest_sha256": "b623fc94786a5dc4373c4e9e958c4d25c4a7e62764b087f86925edec4ede5527",
+  "data_manifest_sha256": "2979abf273c43d175b197185912fe824d39c28584c47409435123fe470daae95",
   "partitions": {
     "train": 14407,
     "calibration": 3160,
@@ -30,7 +30,7 @@
   "engine_overlap": [],
   "champion": {
     "name": "xgboost_optimized",
-    "version": "optimized-b623fc94786a",
+    "version": "optimized-302137b8230f",
     "threshold": 0.002844517994672067,
     "validation_metrics": {
       "threshold": 0.002844517994672067,
@@ -147,10 +147,10 @@
     "tp": 316,
     "business_cost": 494000.0,
     "business_cost_per_1000": 37721.44166157605,
-    "evaluated_at_utc": "2026-08-27T12:15:39.930785+00:00",
+    "evaluated_at_utc": "2026-08-29T01:07:43.414474+00:00",
     "model_name": "xgboost_optimized",
-    "model_version": "optimized-b623fc94786a",
-    "dataset": "NASA C-MAPSS FD001 external holdout",
+    "model_version": "optimized-302137b8230f",
+    "dataset": "FD001 external holdout",
     "locked_external_holdout": true,
     "holdout_loaded_only_at_evaluation": true,
     "raw_test_quality": {
@@ -174,13 +174,15 @@
     "warning": "Do not use these metrics to iteratively tune the model."
   },
   "registry": {
-    "champion": "optimized-b623fc94786a",
+    "champion": "optimized-302137b8230f",
     "registered_versions": [
-      "optimized-b623fc94786a"
+      "optimized-b623fc94786a",
+      "baseline-c193920b2073",
+      "optimized-302137b8230f"
     ]
   },
   "notes": [
-    "External NASA test is excluded from retraining and deployment quality gates.",
+    "External test dataset is excluded from retraining and deployment quality gates.",
     "Monitoring replays the threshold stored with each prediction, including multi-version batches.",
     "GCP deployment assets are prepared but require the user's Google Cloud project and credentials.",
     "MLflow/GCS integrations activate when their dependencies and environment variables are configured."

@@ -46,7 +46,11 @@ def main() -> int:
         "manifest_matches_model_metadata": (
             manifest.get("manifest_sha256") == metadata.get("dataset_manifest_sha256")
         ),
+        # promote.py dérive le suffixe de version depuis git_sha quand git est disponible,
+        # et se replie sur le préfixe du manifeste sinon (voir src/utils/fingerprints.git_sha).
         "model_version_matches_manifest_prefix": metadata.get("model_version", "").endswith(
+            str(metadata.get("git_sha", ""))[:12]
+        ) or metadata.get("model_version", "").endswith(
             str(manifest.get("manifest_sha256", ""))[:12]
         ),
         "registry_champion_matches_model": registry.get("champion") == metadata.get("model_version"),

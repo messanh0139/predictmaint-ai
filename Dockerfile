@@ -11,6 +11,7 @@ RUN pip install --no-cache-dir -r requirements-api.txt -c constraints-model.txt
 
 COPY api ./api
 COPY src ./src
+COPY data/raw ./data/raw
 COPY models/model.joblib ./models/model.joblib
 COPY models/model_metadata.json ./models/model_metadata.json
 

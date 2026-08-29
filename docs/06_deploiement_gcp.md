@@ -31,6 +31,14 @@ Cloud Scheduler --> Cloud Run Job (drift / retraining)
 - secrets futurs dans Secret Manager ;
 - permissions runtime limitées au strict nécessaire.
 
+## Réentraînement automatique déclenché depuis l'API (`/retrain/upload`)
+
+Deux contraintes Cloud Run à connaître, déjà prises en compte dans `Dockerfile` et `infra/gcp/deploy.sh` :
+
+- **Le CPU n'est alloué que pendant le traitement d'une requête, par défaut.** Le réentraînement s'exécute dans un thread en arrière-plan après que la requête `POST /retrain/upload` a déjà répondu : sans `--no-cpu-throttling`, ce thread reste quasiment gelé entre deux requêtes entrantes. Le service API est donc déployé avec `--no-cpu-throttling` (CPU alloué en continu).
+- **L'image API embarque `data/raw/`** (comme `Dockerfile.train`), car `src.data.prepare` en a besoin pour reconstruire TRAIN/CALIBRATION/VALIDATION à chaque réentraînement, et Cloud Run n'a pas d'équivalent au volume `./data` de docker-compose.
+- **Le modèle réentraîné n'est pas persisté au-delà de l'instance courante** : `MODEL_ARTIFACT_BUCKET` n'est pas configuré sur le service API (le compte runtime n'a volontairement pas les droits d'écriture sur ce bucket, réservés à `trainer`/`deployer`). Un réentraînement déclenché en production met à jour l'instance en cours, mais une nouvelle instance ou un redéploiement reviendra au champion de l'image. Pour une mise à jour durable du champion en production, utiliser le job planifié (`infra/gcp/create_retrain_job.sh`), qui tourne avec le compte `trainer` et publie dans le bucket modèle.
+
 ## Bootstrap
 
 Dans Google Cloud Shell :

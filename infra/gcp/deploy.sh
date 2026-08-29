@@ -18,4 +18,5 @@ gcloud run deploy "$SERVICE" \
   --service-account "$RUNTIME_SA" \
   --set-env-vars "PREDICTION_BUCKET=$PREDICTION_BUCKET,LOG_LEVEL=INFO" \
   --cpu 1 --memory 1Gi --concurrency 10 --timeout 60 --min 0 --max 5 \
+  --no-cpu-throttling \
   --no-allow-unauthenticated

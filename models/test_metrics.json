@@ -15,10 +15,10 @@
   "tp": 316,
   "business_cost": 494000.0,
   "business_cost_per_1000": 37721.44166157605,
-  "evaluated_at_utc": "2026-08-27T12:15:39.930785+00:00",
+  "evaluated_at_utc": "2026-08-29T01:07:43.414474+00:00",
   "model_name": "xgboost_optimized",
-  "model_version": "optimized-b623fc94786a",
-  "dataset": "NASA C-MAPSS FD001 external holdout",
+  "model_version": "optimized-302137b8230f",
+  "dataset": "FD001 external holdout",
   "locked_external_holdout": true,
   "holdout_loaded_only_at_evaluation": true,
   "raw_test_quality": {

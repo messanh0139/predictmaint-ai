@@ -176,8 +176,21 @@ def _run_retrain_job(rows_added: int) -> None:
         error=None,
     )
     try:
+        # Exécute directement les étapes nécessaires plutôt que src.pipelines.retrain :
+        # ce module fusionne aussi les prédictions/feedback stockés sur GCS
+        # (compte de service trainer requis, écrase le fichier au lieu de fusionner),
+        # ce qui n'est ni nécessaire ni souhaitable ici puisque les lignes déposées
+        # par /retrain/upload ont déjà été ajoutées à PRODUCTION_FEATURES_PATH.
         env = {**os.environ, "INCLUDE_PRODUCTION_FEEDBACK": "1"}
-        subprocess.run([sys.executable, "-m", "src.pipelines.retrain"], check=True, env=env)
+        steps = [
+            [sys.executable, "-m", "src.data.prepare"],
+            [sys.executable, "-m", "src.features.select_features"],
+            [sys.executable, "-m", "src.models.train"],
+            [sys.executable, "-m", "src.models.quality_gate"],
+            [sys.executable, "-m", "src.models.register"],
+        ]
+        for cmd in steps:
+            subprocess.run(cmd, check=True, env=env)
         _, metadata = load_assets(force=True)
         _retrain_status.update(
             state="completed",

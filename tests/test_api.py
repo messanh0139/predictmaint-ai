@@ -1,4 +1,8 @@
+import threading
+import time
+
 import numpy as np
+import pandas as pd
 from fastapi.testclient import TestClient
 
 import api.main as api
@@ -73,3 +77,85 @@ def test_metrics_endpoint_is_exposed():
     response = client.get("/metrics")
     assert response.status_code == 200
     assert "predictmaint_predictions_total" in response.text
+
+
+def _upload_csv(engine_ids, cycles_per_engine: int = 5) -> bytes:
+    rows = []
+    for engine_id in engine_ids:
+        for cycle in range(1, cycles_per_engine + 1):
+            row = {"engine_id": engine_id, **_snapshot(cycle)}
+            row["actual_failure_within_30_cycles"] = 0
+            rows.append(row)
+    return pd.DataFrame(rows).to_csv(index=False).encode("utf-8")
+
+
+def test_retrain_status_defaults_to_idle(monkeypatch):
+    monkeypatch.setattr(
+        api,
+        "_retrain_status",
+        {
+            "state": "idle",
+            "started_at": None,
+            "finished_at": None,
+            "rows_added": 0,
+            "error": None,
+            "model_version": None,
+        },
+    )
+    client = TestClient(api.app)
+    response = client.get("/retrain/status")
+    assert response.status_code == 200
+    assert response.json()["state"] == "idle"
+
+
+def test_retrain_upload_rejects_missing_columns():
+    client = TestClient(api.app)
+    response = client.post(
+        "/retrain/upload",
+        files={"file": ("bad.csv", b"engine_id,cycle\n1,1\n", "text/csv")},
+    )
+    assert response.status_code == 422
+
+
+def test_retrain_upload_triggers_background_job_and_reports_failure(monkeypatch, tmp_path):
+    monkeypatch.setattr(api, "PRODUCTION_FEATURES_PATH", tmp_path / "feedback_features.csv")
+
+    started = threading.Event()
+
+    def fake_run(cmd, check, env):
+        started.set()
+        raise RuntimeError("subprocess disabled in test")
+
+    monkeypatch.setattr(api.subprocess, "run", fake_run)
+
+    client = TestClient(api.app)
+    response = client.post(
+        "/retrain/upload",
+        files={"file": ("new_data.csv", _upload_csv([1, 2]), "text/csv")},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "retrain_triggered"
+    assert body["rows_added"] == 2
+
+    assert started.wait(timeout=5)
+    deadline = time.time() + 5
+    status = client.get("/retrain/status").json()
+    while status["state"] == "running" and time.time() < deadline:
+        time.sleep(0.05)
+        status = client.get("/retrain/status").json()
+    assert status["state"] == "failed"
+    assert "subprocess disabled in test" in status["error"]
+
+
+def test_retrain_upload_rejects_concurrent_trigger():
+    assert api._retrain_lock.acquire(blocking=False)
+    try:
+        client = TestClient(api.app)
+        response = client.post(
+            "/retrain/upload",
+            files={"file": ("new_data.csv", _upload_csv([3]), "text/csv")},
+        )
+        assert response.status_code == 409
+    finally:
+        api._retrain_lock.release()
