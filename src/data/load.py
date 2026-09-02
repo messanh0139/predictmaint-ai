@@ -5,6 +5,7 @@ from src.config import BASE_COLUMNS, RAW_DIR
 
 
 def _read_space_file(path: Path, names: list[str]) -> pd.DataFrame:
+    # Fichiers NASA C-MAPSS : colonnes séparées par un nombre variable d'espaces, sans en-tête.
     return pd.read_csv(path, sep=r"\s+", header=None, names=names)
 
 

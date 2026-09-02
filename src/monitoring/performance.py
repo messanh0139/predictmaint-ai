@@ -11,6 +11,7 @@ from src.models.common import metrics_from_predictions
 
 
 def load_jsonl(path: str | Path) -> pd.DataFrame:
+    """Charge un fichier JSON Lines (log de prédictions ou de feedback) en DataFrame."""
     rows = []
     p = Path(path)
     if not p.exists():
@@ -24,6 +25,7 @@ def load_jsonl(path: str | Path) -> pd.DataFrame:
 
 
 def _version_report(group: pd.DataFrame) -> dict:
+    """Calcule les métriques de performance pour un sous-ensemble de prédictions d'une même version de modèle."""
     labelled = int(len(group))
     if labelled < 20 or group["actual_failure_within_30_cycles"].nunique() < 2:
         return {
@@ -53,11 +55,14 @@ def _version_report(group: pd.DataFrame) -> dict:
 
 
 def performance_report(predictions_path: str | Path, feedback_path: str | Path) -> dict:
+    """Rapproche les prédictions historiques du feedback terrain (label réel) et calcule les métriques
+    de performance globales ainsi qu'une ventilation par version de modèle."""
     pred = load_jsonl(predictions_path)
     fb = load_jsonl(feedback_path)
     if pred.empty or fb.empty:
         return {"labelled_predictions": 0, "status": "insufficient_ground_truth"}
 
+    # Contrat minimal attendu du log de prédictions, nécessaire pour recalculer la décision historique.
     required_prediction_columns = {
         "prediction_id",
         "failure_probability",
@@ -77,6 +82,7 @@ def performance_report(predictions_path: str | Path, feedback_path: str | Path) 
         on="prediction_id",
         how="inner",
     )
+    # Une seule ligne par prédiction : on garde la dernière en cas de doublon de feedback.
     merged = merged.drop_duplicates(subset=["prediction_id"], keep="last")
     if len(merged) < 20 or merged["actual_failure_within_30_cycles"].nunique() < 2:
         return {"labelled_predictions": int(len(merged)), "status": "insufficient_ground_truth"}

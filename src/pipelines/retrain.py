@@ -11,6 +11,8 @@ import subprocess
 import sys
 
 
+# Étapes obligatoires exécutées dans l'ordre : préparation des données,
+# sélection des features (sur TRAIN uniquement), puis entraînement.
 BASE_STEPS = [
     [sys.executable, "-m", "src.data.prepare"],
     [sys.executable, "-m", "src.features.select_features"],
@@ -19,11 +21,16 @@ BASE_STEPS = [
 
 
 def main(optimize: bool = False, trials: int = 30) -> None:
+    """Orchestre le pipeline de réentraînement complet en exécutant chaque étape comme un sous-processus."""
     steps = []
     telemetry_bucket = os.getenv("PREDICTION_BUCKET")
+    # Le feedback de production n'est intégré que si explicitement activé,
+    # pour ne pas polluer un run standard avec des données non validées.
     if telemetry_bucket and os.getenv("INCLUDE_PRODUCTION_FEEDBACK", "0") == "1":
         steps.append([sys.executable, "-m", "src.data.collect_feedback", "--bucket", telemetry_bucket])
     steps.extend(BASE_STEPS)
+    # L'optimisation d'hyperparamètres et la promotion du champion sont optionnelles
+    # (coûteuses en temps) : activées uniquement via --optimize.
     if optimize:
         steps.append([sys.executable, "-m", "src.models.optimize", "--trials", str(trials)])
         steps.append([sys.executable, "-m", "src.models.promote"])

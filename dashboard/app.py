@@ -1,3 +1,11 @@
+"""Tableau de bord Streamlit de PredictMaint AI.
+
+Permet de démontrer la prédiction de risque de défaillance sur des moteurs
+turbofan, de consulter les métriques de performance du modèle en production,
+de déclencher un réentraînement à partir de nouvelles données, et de
+présenter l'architecture globale du projet lors d'une soutenance.
+"""
+
 from __future__ import annotations
 
 import json
@@ -10,6 +18,8 @@ import requests
 import streamlit as st
 
 
+# Configuration de l'application, surchargeable via des variables d'environnement
+# (URL de l'API, chemins des données/métadonnées locales, liens vers les outils MLOps).
 API_URL = os.getenv("API_URL", "http://api:8080").rstrip("/")
 API_AUDIENCE = os.getenv("API_AUDIENCE", "").strip()
 DATA_PATH = Path(os.getenv("DEMO_DATA_PATH", "/app/data/raw/test_FD001.txt"))
@@ -20,6 +30,8 @@ GRAFANA_URL = os.getenv("GRAFANA_URL", "http://localhost:3001")
 MLFLOW_URL = os.getenv("MLFLOW_URL", "http://localhost:5000")
 API_DOCS_URL = os.getenv("API_DOCS_URL", "http://localhost:8081/docs")
 
+# Colonnes du jeu de données brut (contexte moteur + réglages + capteurs), et
+# sous-ensemble utilisé pour l'envoi d'un instantané de capteurs à l'API.
 BASE_COLUMNS = [
     "engine_id",
     "cycle",
@@ -30,12 +42,16 @@ BASE_COLUMNS = [
 ]
 SNAPSHOT_COLUMNS = [column for column in BASE_COLUMNS if column != "engine_id"]
 
+# Configuration générale de la page Streamlit (titre, disposition large,
+# barre latérale ouverte par défaut).
 st.set_page_config(
     page_title="PredictMaint AI",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
+# Thème visuel personnalisé (CSS injecté) : fond dégradé sombre, cartes de
+# métriques, badges de risque haut/bas, liens de service et masquage du footer.
 st.markdown(
     """
     <style>
@@ -67,6 +83,10 @@ st.markdown(
 )
 
 
+# --- Chargement des données locales (mis en cache par Streamlit) ---
+
+# Charge un fichier JSON (métadonnées du modèle, métriques de test) ; renvoie
+# un dictionnaire vide si le fichier n'existe pas encore.
 @st.cache_data
 def load_json(path: Path) -> dict:
     if not path.exists():
@@ -74,11 +94,18 @@ def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+# Charge le jeu de données de démonstration (format texte séparé par espaces,
+# sans en-tête) dans un DataFrame nommé selon BASE_COLUMNS.
 @st.cache_data
 def load_demo_data(path: Path) -> pd.DataFrame:
     return pd.read_csv(path, sep=r"\s+", header=None, names=BASE_COLUMNS)
 
 
+# --- Appels à l'API FastAPI ---
+
+# Construit les en-têtes d'authentification pour appeler l'API : récupère un
+# jeton d'identité Google Cloud Run si une audience est configurée, sinon
+# aucun en-tête n'est nécessaire (environnement local).
 def api_headers() -> dict[str, str]:
     if not API_AUDIENCE:
         return {}
@@ -92,6 +119,8 @@ def api_headers() -> dict[str, str]:
         raise RuntimeError(f"Impossible de créer le jeton d'identité Cloud Run: {exc}") from exc
 
 
+# Effectue un GET sur l'API et renvoie (résultat, erreur) : l'erreur est None
+# en cas de succès, sinon un message décrivant l'échec (jamais d'exception levée).
 def api_get(path: str) -> tuple[dict, str | None]:
     try:
         response = requests.get(f"{API_URL}{path}", headers=api_headers(), timeout=5)
@@ -101,6 +130,8 @@ def api_get(path: str) -> tuple[dict, str | None]:
         return {}, str(exc)
 
 
+# Effectue un POST JSON sur l'API (ex. prédiction, feedback) et renvoie
+# (résultat, erreur) en incluant le détail de la réponse HTTP en cas d'échec.
 def api_post(path: str, payload: dict) -> tuple[dict, str | None]:
     try:
         response = requests.post(
@@ -115,6 +146,8 @@ def api_post(path: str, payload: dict) -> tuple[dict, str | None]:
         return {}, f"{exc}{detail}"
 
 
+# Envoie un fichier (ex. CSV de nouvelles données) en multipart vers l'API,
+# avec un délai plus long car cela peut déclencher un traitement lourd côté serveur.
 def api_post_file(path: str, filename: str, content: bytes) -> tuple[dict, str | None]:
     try:
         response = requests.post(
@@ -144,10 +177,12 @@ def build_sample_upload(demo_data: pd.DataFrame) -> bytes:
     )
 
 
+# --- Chargement initial (métadonnées du modèle, métriques de test, état de l'API) ---
 metadata = load_json(METADATA_PATH)
 test_metrics = load_json(METRICS_PATH)
 health, health_error = api_get("/ready")
 
+# --- Barre latérale : statut de l'API et liens vers l'écosystème MLOps ---
 with st.sidebar:
     st.title("PredictMaint")
     if health_error:
@@ -167,6 +202,7 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
+# --- Bandeau d'en-tête (titre et pitch de l'application) ---
 st.markdown(
     """
     <div class="hero">
@@ -177,12 +213,14 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# --- Ligne de métriques clés (résumé du modèle champion) ---
 metric_columns = st.columns(4)
 metric_columns[0].metric("Modèle champion", metadata.get("model_name", "—"))
 metric_columns[1].metric("Recall test", f"{test_metrics.get('recall', 0):.1%}")
 metric_columns[2].metric("PR-AUC test", f"{test_metrics.get('pr_auc', 0):.3f}")
 metric_columns[3].metric("Fenêtre d'alerte", f"{metadata.get('failure_window', 30)} cycles")
 
+# --- Navigation par onglets : démonstration, performance, réentraînement, présentation ---
 prediction_tab, performance_tab, retrain_tab, architecture_tab = st.tabs(
     [
         "Démonstration prédictive",
@@ -192,6 +230,9 @@ prediction_tab, performance_tab, retrain_tab, architecture_tab = st.tabs(
     ]
 )
 
+# Onglet "Démonstration prédictive" : sélection d'un moteur et d'un cycle,
+# visualisation des capteurs, appel à /predict et affichage du verdict de risque,
+# puis saisie optionnelle du feedback terrain (résultat réel observé).
 with prediction_tab:
     if not DATA_PATH.exists():
         st.error(f"Jeu de démonstration absent : {DATA_PATH}")
@@ -215,9 +256,11 @@ with prediction_tab:
         )
         history = engine_data[engine_data["cycle"] <= selected_cycle]
 
+        # Aperçu visuel de quelques capteurs clés jusqu'au cycle sélectionné.
         chart_columns = ["sensor_2", "sensor_4", "sensor_7", "sensor_11", "sensor_15"]
         st.line_chart(history.set_index("cycle")[chart_columns], height=240)
 
+        # Envoi de l'historique du moteur à l'API pour obtenir une prédiction de risque.
         if st.button("Analyser le risque", type="primary", use_container_width=True):
             payload = {
                 "engine_id": int(engine_id),
@@ -229,6 +272,8 @@ with prediction_tab:
             else:
                 st.session_state["last_prediction"] = result
 
+        # Affichage du résultat de la dernière prédiction (badge de risque,
+        # probabilité, seuil décisionnel) et formulaire de feedback terrain.
         result = st.session_state.get("last_prediction")
         if result:
             probability = float(result["failure_probability"])
@@ -269,6 +314,8 @@ with prediction_tab:
                     else:
                         st.success("Feedback enregistré pour le monitoring continu.")
 
+# Onglet "Performance" : métriques du modèle sur le holdout externe verrouillé
+# (jamais utilisé pour l'entraînement ni le calibrage), avec matrice de confusion.
 with performance_tab:
     st.subheader("Résultats sur le holdout externe verrouillé")
     perf_columns = st.columns(4)
@@ -294,6 +341,9 @@ with performance_tab:
         "est réservé à l'évaluation finale et n'est pas utilisé pour ajuster le modèle."
     )
 
+# Onglet "Réentraînement automatique" : upload d'un CSV de nouvelles données
+# de production, déclenchement automatique du pipeline côté API, puis suivi
+# du statut (running / completed / failed) avec rafraîchissement périodique.
 with retrain_tab:
     st.subheader("Déclenchement automatique du réentraînement")
     st.markdown(
@@ -317,6 +367,8 @@ with retrain_tab:
             help="Exemple illustratif au format attendu, à utiliser pour la démonstration.",
         )
 
+    # Déclenche l'upload et le pipeline seulement pour un fichier réellement
+    # nouveau (évite de relancer le traitement à chaque re-rendu de la page).
     uploaded_file = st.file_uploader("Nouvelles données de production (CSV)", type=["csv"])
     if uploaded_file is not None:
         file_signature = f"{uploaded_file.name}:{uploaded_file.size}"
@@ -335,6 +387,8 @@ with retrain_tab:
                     "Réentraînement déclenché automatiquement."
                 )
 
+    # Polling du statut du réentraînement en arrière-plan : tant qu'il tourne,
+    # la page se rafraîchit automatiquement toutes les 2 secondes.
     if st.session_state.get("retrain_triggered"):
         status, status_error = api_get("/retrain/status")
         if status_error:
@@ -358,6 +412,8 @@ with retrain_tab:
                 st.error(f"Échec du réentraînement : {status.get('error')}")
                 st.session_state["retrain_triggered"] = False
 
+# Onglet "Parcours de présentation" : guide de démonstration pour la soutenance
+# et schéma synthétique de l'architecture du système.
 with architecture_tab:
     st.subheader("Scénario conseillé pour la soutenance")
     st.markdown(

@@ -17,6 +17,8 @@ def register_local_model(
     metadata_path: Path,
     registry_dir: Path,
 ) -> dict:
+    """Copie le modèle et ses métadonnées dans le registre local versionné
+    (un sous-dossier par version) et met à jour l'index du registre."""
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
     version = metadata["model_version"]
     target_dir = registry_dir / version
@@ -26,6 +28,8 @@ def register_local_model(
     shutil.copy2(model_path, target_model)
     shutil.copy2(metadata_path, target_metadata)
 
+    # Chemin affiché relatif à la racine du projet si possible, sinon relatif
+    # au registre lui-même (cas où registry_dir est hors de MODELS_DIR.parent).
     try:
         artifact_display = str(target_model.relative_to(MODELS_DIR.parent))
         metadata_display = str(target_metadata.relative_to(MODELS_DIR.parent))
@@ -47,6 +51,8 @@ def register_local_model(
         index = json.loads(index_path.read_text(encoding="utf-8"))
     else:
         index = {"champion": None, "versions": []}
+    # Remplace une éventuelle entrée existante pour cette version avant de la rajouter,
+    # puis désigne cette version comme le champion courant.
     index["versions"] = [x for x in index.get("versions", []) if x.get("version") != version]
     index["versions"].append(entry)
     index["champion"] = version
@@ -99,6 +105,8 @@ def register_mlflow(model_path: Path, metadata_path: Path) -> dict:
 
 
 def main() -> None:
+    """Enregistre le modèle champion dans le registre local, MLflow (optionnel)
+    et GCS (le bucket, s'il est configuré, devient une exigence obligatoire)."""
     model_path = MODELS_DIR / "model.joblib"
     metadata_path = MODELS_DIR / "model_metadata.json"
     if not model_path.exists() or not metadata_path.exists():
@@ -107,6 +115,8 @@ def main() -> None:
     mlflow_status = register_mlflow(model_path, metadata_path)
     gcs_status = upload_champion_to_gcs(model_path, metadata_path)
     status = {"local_registry": local, "mlflow_registry": mlflow_status, "gcs_artifact_store": gcs_status}
+    # Si un bucket GCS est configuré, l'upload y est obligatoire : on échoue
+    # explicitement plutôt que de laisser passer un enregistrement incomplet.
     if os.getenv("MODEL_ARTIFACT_BUCKET") and gcs_status.get("status") != "uploaded":
         raise RuntimeError(f"Persistent GCS model registration failed: {gcs_status}")
     (MODELS_DIR / "registry_status.json").write_text(

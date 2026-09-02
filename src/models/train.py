@@ -37,8 +37,12 @@ except Exception:
 
 
 def build_candidates(y_train: pd.Series) -> dict[str, Pipeline]:
+    """Construit les pipelines candidats à comparer (régression logistique, forêt
+    aléatoire, et XGBoost si disponible), chacun pondérant les classes pour
+    compenser le déséquilibre entre pannes et non-pannes."""
     positives = max(int(y_train.sum()), 1)
     negatives = max(int((1 - y_train).sum()), 1)
+    # Ratio négatifs/positifs, repris comme scale_pos_weight pour XGBoost.
     scale_pos_weight = negatives / positives
 
     candidates: dict[str, Pipeline] = {
@@ -63,6 +67,8 @@ def build_candidates(y_train: pd.Series) -> dict[str, Pipeline]:
     try:
         from xgboost import XGBClassifier
 
+        # Hyperparamètres par défaut raisonnables (non optimisés) : le tuning fin
+        # se fait séparément dans optimize.py via Optuna.
         candidates["xgboost"] = build_model_pipeline(
             XGBClassifier(
                 n_estimators=180,
@@ -83,6 +89,7 @@ def build_candidates(y_train: pd.Series) -> dict[str, Pipeline]:
 
 
 def _start_mlflow() -> None:
+    """Configure le tracking MLflow si la librairie est installée (no-op sinon)."""
     if not MLFLOW_AVAILABLE:
         print("MLflow non installé: exécution sans tracking. requirements.txt l'active.")
         return
@@ -92,6 +99,8 @@ def _start_mlflow() -> None:
 
 
 def main() -> None:
+    """Entraîne tous les modèles candidats, calibre leur seuil, sélectionne le
+    meilleur sur la validation et sauvegarde le champion avec ses métadonnées."""
     MODELS_DIR.mkdir(exist_ok=True)
     candidates_dir = MODELS_DIR / "candidates"
     candidates_dir.mkdir(exist_ok=True)
@@ -174,6 +183,8 @@ def main() -> None:
             except Exception as exc:
                 print(f"MLflow tracking warning ({name}): {exc}")
 
+        # Sélectionne le meilleur candidat selon le même critère de tri que la
+        # promotion : garde-fou recall -> coût métier -> PR-AUC -> Brier.
         if best is None or validation_sort_key(row) < validation_sort_key(best["row"]):
             best = {"row": row, "model": model, "threshold": threshold}
 
@@ -189,6 +200,7 @@ def main() -> None:
         (PROCESSED_DIR / "split_manifest.json").read_text(encoding="utf-8")
     )
     runtime = runtime_metadata()
+    # Version = sha git court si disponible, sinon fallback sur le hash du dataset.
     version_token = runtime["git_sha"][:12] if runtime["git_sha"] != "unknown" else split_manifest["manifest_sha256"][:12]
     metadata = {
         **runtime,

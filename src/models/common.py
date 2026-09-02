@@ -26,19 +26,25 @@ from src.config import (
 
 
 def load_selected_features(path: Path) -> list[str]:
+    """Charge la liste des features retenues (issue de la sélection de features)."""
     return json.loads(path.read_text(encoding="utf-8"))
 
 
 def xy(df: pd.DataFrame, features: list[str]):
+    """Sépare un DataFrame en matrice de features (X) et cible binaire (y)."""
     return df[features], df[TARGET_COL].astype(int)
 
 
 def _classification_metrics(y_true, prob, pred) -> dict:
+    """Calcule le jeu complet de métriques de classification à partir des labels,
+    probabilités et prédictions binaires déjà seuillées."""
     y_true = np.asarray(y_true, dtype=int)
     prob = np.asarray(prob, dtype=float)
     pred = np.asarray(pred, dtype=int)
     tn, fp, fn, tp = confusion_matrix(y_true, pred, labels=[0, 1]).ravel()
     specificity = tn / (tn + fp) if (tn + fp) else 0.0
+    # Coût métier : un faux négatif (panne non détectée) coûte bien plus cher
+    # qu'un faux positif (maintenance inutile) -> pondération asymétrique.
     cost = fn * FALSE_NEGATIVE_COST + fp * FALSE_POSITIVE_COST
     return {
         "precision": float(precision_score(y_true, pred, zero_division=0)),
@@ -61,6 +67,7 @@ def _classification_metrics(y_true, prob, pred) -> dict:
 
 
 def metrics(y_true, prob, threshold: float = 0.5) -> dict:
+    """Applique un seuil de décision aux probabilités puis calcule les métriques."""
     prob = np.asarray(prob, dtype=float)
     pred = (prob >= threshold).astype(int)
     return {
@@ -98,8 +105,11 @@ def choose_threshold(y_true, prob, min_recall: float = MIN_RECALL) -> tuple[floa
         f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
         cost = fn * FALSE_NEGATIVE_COST + fp * FALSE_POSITIVE_COST
         scored.append((float(t), recall, f1, float(cost)))
+    # On ne garde que les seuils respectant le rappel minimum requis ; si aucun
+    # ne le respecte, on retombe sur l'ensemble complet pour rester robuste.
     feasible = [x for x in scored if x[1] >= min_recall]
     pool = feasible if feasible else scored
+    # Meilleur seuil = coût métier minimal, puis rappel max, puis F1 max (départage).
     best_t, _, _, _ = min(pool, key=lambda x: (x[3], -x[1], -x[2]))
     return float(best_t), metrics(y, p, float(best_t))
 

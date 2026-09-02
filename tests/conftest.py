@@ -1,3 +1,5 @@
+# Configuration partagée par tous les tests : garantit que le package `src`
+# est importable, même si pytest est lancé depuis un autre répertoire.
 import sys
 from pathlib import Path
 

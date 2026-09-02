@@ -16,6 +16,7 @@ from src.features.build_features import candidate_feature_columns
 
 
 def _normalize(s: pd.Series) -> pd.Series:
+    """Ramène un score sur [0, 1] (division par le max) pour rendre comparables des méthodes hétérogènes."""
     s = s.astype(float).abs()
     m = float(s.max()) if len(s) else 0.0
     return s / m if m > 0 else s * 0.0
@@ -119,6 +120,7 @@ def select_features(
 
 
 def main() -> None:
+    """Point d'entrée CLI : lance la sélection sur le train et écrit rapport + variables retenues sur disque."""
     MODELS_DIR.mkdir(exist_ok=True)
     train = pd.read_csv(PROCESSED_DIR / "train_features.csv")
     selected, report, removals = select_features(train)

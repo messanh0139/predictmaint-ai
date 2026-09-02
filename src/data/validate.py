@@ -60,6 +60,11 @@ def validate_raw(df: pd.DataFrame) -> dict:
 
 
 def validate_rul_alignment(test_df: pd.DataFrame, rul_df: pd.DataFrame) -> dict:
+    """Vérifie la cohérence entre le jeu de test externe et son fichier RUL_FD001.
+
+    Le nombre de lignes de RUL_FD001 doit correspondre au nombre de moteurs de test,
+    et les valeurs de RUL doivent être présentes et non négatives.
+    """
     engines = sorted(test_df[ID_COL].unique())
     if len(engines) != len(rul_df):
         raise ValueError(

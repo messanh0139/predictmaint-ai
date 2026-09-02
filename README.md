@@ -23,7 +23,7 @@ Docker · Docker Compose · GitHub Actions
 **Cloud**
 Google Cloud Platform (Cloud Run, Artifact Registry, Cloud Storage)
 
-Le détail des alternatives comparées et la justification de chaque choix (compatibilité, coût, simplicité, performance, maintenabilité) est documenté dans `docs/03_choix_technologiques.md`.
+Le détail des alternatives comparées et la justification de chaque choix (compatibilité, coût, simplicité, performance, maintenabilité) est documenté dans **docs/03_choix_technologiques.md**
 
 ## Objectif du Projet
 
@@ -43,8 +43,8 @@ Concrètement, le système :
 
 - **Équipes de maintenance** : un score de risque par moteur et une fenêtre d'alerte de 30 cycles pour prioriser les inspections.
 - **Data scientists / MLOps** : traçabilité complète (registre local + MLflow), notebooks pédagogiques explicites, empreintes SHA256 reliant chaque modèle à sa version exacte des données.
-- **Responsables qualité** : quality gate versionné (`models/quality_gate.json`), model card (`docs/11_model_card.md`) et limites documentées avant tout usage industriel.
-- **Toute personne relisant le projet** : une preuve de bout en bout du cycle de vie MLOps — cadrage, données, modèle, API, monitoring, réentraînement, déploiement.
+- **Responsables qualité** : quality gate versionné (**models/quality_gate.json**)
+- **Toute personne relisant le projet** : une preuve de bout en bout du cycle de vie MLOps - cadrage, données, modèle, API, monitoring, réentraînement, déploiement.
 
 ## Architecture du Projet
 
@@ -122,18 +122,18 @@ FastAPI -> Docker -> CI/CD -> Google Cloud Run
 
 La fuite de données (« data leakage ») est traitée comme un risque de conception à part entière, pas comme un détail d'implémentation :
 
-1. **Split en trois groupes par `engine_id`, avant tout feature engineering et avant toute analyse exploratoire supervisée** : TRAIN, CALIBRATION et VALIDATION portent sur des moteurs différents, jamais mélangés.
-2. **Le holdout externe reste réellement verrouillé** : `RUL_FD001.txt` n'est ni chargé ni matérialisé pendant le développement. Le couple `test_FD001 + RUL_FD001` n'est ouvert que par `python -m src.models.evaluate`, pour l'évaluation externe finale.
-3. **Les features temporelles sont strictement causales** : une ligne au cycle `t` n'utilise que le cycle courant et les cycles passés du même moteur, jamais le futur.
-4. **Certaines variables sont interdites au modèle** : `RUL`, la cible, l'identifiant moteur et toute colonne dérivée de la vérité terrain.
+1. **Split en trois groupes par **engine_id**, avant tout feature engineering et avant toute analyse exploratoire supervisée** : TRAIN, CALIBRATION et VALIDATION portent sur des moteurs différents, jamais mélangés.
+2. **Le holdout externe reste réellement verrouillé** : **RUL_FD001.txt** n'est ni chargé ni matérialisé pendant le développement. Le couple **test_FD001 + RUL_FD001** n'est ouvert que par **python -m src.models.evaluate**, pour l'évaluation externe finale.
+3. **Les features temporelles sont strictement causales** : une ligne au cycle **t** n'utilise que le cycle courant et les cycles passés du même moteur, jamais le futur.
+4. **Certaines variables sont interdites au modèle** : **RUL**, la cible, l'identifiant moteur et toute colonne dérivée de la vérité terrain.
 5. **L'EDA qui utilise le RUL/la cible et la sélection de variables ne portent que sur TRAIN** : les décisions humaines de sélection ne consultent jamais VALIDATION ni TEST.
-6. **L'imputation et le scaling sont encapsulés dans des pipelines scikit-learn**, ajustés uniquement pendant le `fit` sur TRAIN.
+6. **L'imputation et le scaling sont encapsulés dans des pipelines scikit-learn**, ajustés uniquement pendant le **fit** sur TRAIN.
 7. **Le seuil de décision est calé sur CALIBRATION uniquement.**
 8. **Le choix du champion se fait sur VALIDATION uniquement.**
 9. **Optuna utilise une validation croisée groupée par moteur, sur TRAIN uniquement.**
 10. **Le test externe n'est jamais exécuté par le réentraînement automatique**, pour qu'il ne devienne pas, au fil du temps, un signal de développement déguisé.
 
-Détails complets : `docs/04_data_leakage.md`.
+Détails complets : **docs/04_data_leakage.md**.
 
 ## Workflow du pipeline
 
@@ -143,7 +143,7 @@ Depuis l'onglet **Réentraînement automatique** du dashboard, un CSV de nouvell
 
 **Détection de dérive des données (indépendante du déclenchement du réentraînement) :**
 
-`src/monitoring/drift.py` calcule un **PSI** par variable en comparant la distribution courante à une référence figée sur TRAIN. Si le volume de données est insuffisant pour conclure, le système retourne explicitement `insufficient_data` plutôt que d'interpréter à tort un PSI nul comme une absence de dérive. Une alerte est levée si une proportion significative de variables dépasse le seuil PSI (0,20 par défaut).
+**src/monitoring/drift.py** calcule un **PSI** par variable en comparant la distribution courante à une référence figée sur TRAIN. Si le volume de données est insuffisant pour conclure, le système retourne explicitement **insufficient_data** plutôt que d'interpréter à tort un PSI nul comme une absence de dérive. Une alerte est levée si une proportion significative de variables dépasse le seuil PSI (0,20 par défaut).
 
 **Réentraînement automatique :**
 
@@ -159,7 +159,7 @@ L'API FastAPI expose **POST /predict**, qui charge le champion courant et retour
 
 **Surveillance de la performance :**
 
-Quand une vérité terrain arrive plus tard sur **POST /feedback**, `src/monitoring/performance.py` recalcule recall, PR-AUC, F1 et coût métier, et signale tout guardrail non respecté. Pour un lot contenant plusieurs versions du modèle, **chaque prédiction est réévaluée avec le seuil versionné qui a réellement servi à la produire** — aucun seuil courant ne remplace l'historique.
+Quand une vérité terrain arrive plus tard sur **POST /feedback**, **src/monitoring/performance.py** recalcule recall, PR-AUC, F1 et coût métier, et signale tout guardrail non respecté. Pour un lot contenant plusieurs versions du modèle, **chaque prédiction est réévaluée avec le seuil versionné qui a réellement servi à la produire** — aucun seuil courant ne remplace l'historique.
 
 ## Modèles comparés
 
@@ -180,9 +180,9 @@ Le **XGBoost optimisé** a été retenu comme champion de production. Il n'a ni 
 
 - Train : 20 631 lignes, 100 moteurs, 26 colonnes.
 - Test externe : 13 096 lignes, 100 moteurs, 26 colonnes (contrôle structurel uniquement, avant l'évaluation finale).
-- Valeurs manquantes : 0. Doublons `(engine_id, cycle)` : 0.
+- Valeurs manquantes : 0. Doublons **(engine_id, cycle)** : 0.
 - Durée de vie des moteurs sur TRAIN : minimum 128, médiane 199, moyenne 206,31, maximum 362 cycles.
-- Cible `RUL <= 30`, analysée après split, sur TRAIN uniquement : 2 170 positifs sur 14 407 lignes (15,06 %).
+- Cible **RUL <= 30**, analysée après split, sur TRAIN uniquement : 2 170 positifs sur 14 407 lignes (15,06 %).
 
 ### Split de développement actuel
 
@@ -203,7 +203,7 @@ Une évaluation explicite du champion sur le holdout externe (jamais consulté p
 
 Ce test externe est séparé du quality gate de CI/CD. Il doit être utilisé avec parcimonie, comme preuve finale, et jamais comme boucle de tuning.
 
-Version du champion empaqueté : `optimized-302137b8230f` (l'identifiant est dérivé du commit git qui a produit l'artefact, pour garder une traçabilité exacte entre le code et le modèle).
+Version du champion empaqueté : **optimized-302137b8230f** (l'identifiant est dérivé du commit git qui a produit l'artefact, pour garder une traçabilité exacte entre le code et le modèle).
 
 ## Services Disponibles
 
@@ -216,7 +216,7 @@ Version du champion empaqueté : `optimized-302137b8230f` (l'identifiant est dé
 | Prometheus | http://localhost:9090 | aucun |
 | Grafana | http://localhost:3001 | admin / admin (local uniquement) |
 
-Les ports sont configurables via `API_PORT`, `GRAFANA_PORT`, `MLFLOW_PORT` et `DASHBOARD_PORT` dans `.env`, utile si l'un d'eux est déjà occupé par un autre projet sur la machine.
+Les ports sont configurables via **API_PORT**, **GRAFANA_PORT**, **MLFLOW_PORT** et **DASHBOARD_PORT** dans **.env**, utile si l'un d'eux est déjà occupé par un autre projet sur la machine.
 
 ## Installation et Démarrage
 
@@ -253,14 +253,14 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt -c constraints-model.txt
 ```
 
-Si PowerShell bloque l'exécution de `Activate.ps1` :
+Si PowerShell bloque l'exécution de **Activate.ps1** :
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\.venv\Scripts\Activate.ps1
 ```
 
-`requirements.txt` installe tout ce qu'il faut pour développer, tester et entraîner en local (il inclut `requirements-dev.txt`, qui inclut lui-même `requirements-train.txt`). Pour un environnement plus léger, `requirements-api.txt` seul suffit à faire tourner l'API avec un modèle déjà entraîné.
+**requirements.txt** installe tout ce qu'il faut pour développer, tester et entraîner en local (il inclut **requirements-dev.txt**, qui inclut lui-même **requirements-train.txt**). Pour un environnement plus léger, **requirements-api.txt** seul suffit à faire tourner l'API avec un modèle déjà entraîné.
 
 ### 3. Configurer les variables d'environnement
 
@@ -283,12 +283,6 @@ python -m src.models.quality_gate
 
 ```bash
 docker compose up --build -d
-```
-
-**Sur Linux**, les conteneurs `api` et `dashboard` tournent avec un utilisateur non-root. Comme `./data` et `./models` sont montés depuis l'hôte, il faut leur donner les droits d'écriture pour que le conteneur `api` puisse écrire (notamment pour le réentraînement automatique) :
-
-```bash
-chmod -R o+w data models
 ```
 
 ### 6. Arrêter les services
@@ -374,9 +368,7 @@ Secrets nécessaires : `GCP_PROJECT_ID`, `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_
 
 ## Déploiement sur Google Cloud Platform
 
-Cible de déploiement : **Artifact Registry + Cloud Run**. L'API est déployée **privée** (`--no-allow-unauthenticated`) avec une identité runtime séparée de l'identité de déploiement ; le dashboard Streamlit est déployé **public** (`--allow-unauthenticated`) et invoque l'API en interne avec un jeton d'identité de son propre compte de service. L'authentification GitHub → GCP se fait par Workload Identity Federation, sans clé JSON de compte de service stockée dans le dépôt.
-
-> Ce dépôt n'est pas encore déployé sur un projet GCP en continu : la procédure de provisionnement (bootstrap, comptes de service, buckets, déploiement, job de réentraînement planifié) est prête et documentée dans `docs/06_deploiement_gcp.md`, à exécuter avec `./infra/gcp/bootstrap.sh` puis `./infra/gcp/deploy.sh` (API privée), `./infra/gcp/deploy_mlflow.sh` et `./infra/gcp/deploy_grafana.sh` (MLOps public, optionnels — Grafana lit Cloud Monitoring nativement, pas de Prometheus à déployer sur GCP) et enfin `./infra/gcp/deploy_dashboard.sh` (dashboard public, URL de démonstration).
+Cible de déploiement : **Artifact Registry + Cloud Run**. L'API est déployée **privée** (`--no-allow-unauthenticated`) avec une identité runtime séparée de l'identité de déploiement ; le dashboard Streamlit est déployé en **public** et invoque l'API en interne avec un jeton d'identité de son propre compte de service. L'authentification GitHub → GCP se fait par Workload Identity Federation, sans clé JSON de compte de service stockée dans le dépôt
 
 ## Notebooks
 

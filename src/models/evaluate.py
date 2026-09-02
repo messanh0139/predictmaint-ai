@@ -21,6 +21,7 @@ def main() -> None:
     fait partie ni du retraining automatique ni du quality gate de déploiement.
     """
     raw_test, rul = load_external_test_fd001()
+    # Contrôles qualité des données brutes et de l'alignement RUL avant tout calcul.
     test_quality = validate_raw(raw_test)
     rul_quality = validate_rul_alignment(raw_test, rul)
 
@@ -33,6 +34,8 @@ def main() -> None:
 
     X_test, y_test = xy(test_df, features)
     prob = model.predict_proba(X_test)[:, 1]
+    # Réutilise le seuil déjà calibré et figé dans les métadonnées du modèle
+    # (pas de re-calibration sur le holdout externe).
     result = metrics(y_test, prob, float(metadata["threshold"]))
     result.update(
         {

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# Construction des features d'ingénierie pour la maintenance prédictive :
+# uniquement des transformations causales (lags, fenêtres glissantes, EWM) par moteur.
 import numpy as np
 import pandas as pd
 
@@ -55,4 +57,5 @@ def build_causal_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def candidate_feature_columns(df: pd.DataFrame) -> list[str]:
+    """Liste les colonnes utilisables par le modèle (exclut ID, cible et colonnes de fuite)."""
     return [c for c in df.columns if c not in FORBIDDEN_MODEL_COLUMNS]

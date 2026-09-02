@@ -62,6 +62,12 @@ _metadata = None
 
 
 def load_assets(force: bool = False):
+    """Charge (ou recharge) le modèle et ses métadonnées en cache mémoire.
+
+    `force=True` invalide le cache pour recharger les artefacts après un
+    réentraînement. Vérifie aussi que les métadonnées contiennent les clés
+    attendues avant de considérer le modèle comme prêt.
+    """
     global _model, _metadata
     if force:
         _model = None
@@ -83,6 +89,7 @@ def load_assets(force: bool = False):
     return _model, _metadata
 
 
+# Relevé capteurs/réglages d'un moteur pour un cycle donné.
 class Snapshot(BaseModel):
     cycle: int = Field(ge=1)
     setting_1: float
@@ -112,17 +119,23 @@ class Snapshot(BaseModel):
 
 
 class PredictionRequest(BaseModel):
+    """Requête de prédiction : identifiant moteur + historique de relevés."""
+
     engine_id: int = Field(ge=1)
     history: List[Snapshot] = Field(min_length=1, max_length=500)
 
     @model_validator(mode="after")
     def cycles_must_increase(self):
+        # Les features causales (fenêtres glissantes) supposent un historique
+        # ordonné sans doublon : on rejette la requête sinon plutôt que de
+        # produire une prédiction silencieusement erronée.
         cycles = [x.cycle for x in self.history]
         if cycles != sorted(cycles) or len(cycles) != len(set(cycles)):
             raise ValueError("history doit contenir des cycles uniques et strictement croissants")
         return self
 
 
+# Réponse publique renvoyée par /predict (pas de features brutes exposées).
 class PredictionResponse(BaseModel):
     prediction_id: str
     timestamp: str
@@ -135,6 +148,7 @@ class PredictionResponse(BaseModel):
     model_version: str | None = None
 
 
+# Retour terrain associé à une prédiction déjà émise (pour évaluation/réentraînement).
 class FeedbackRequest(BaseModel):
     prediction_id: str = Field(min_length=3, max_length=200)
     actual_failure_within_30_cycles: int = Field(ge=0, le=1)
@@ -142,6 +156,12 @@ class FeedbackRequest(BaseModel):
 
 
 def _persist_record(record: dict, local_path: Path, gcs_prefix: str) -> None:
+    """Écrit un enregistrement JSONL en local puis, si configuré, sur GCS.
+
+    Les deux écritures sont indépendantes et ne doivent jamais faire échouer
+    la requête HTTP appelante : toute erreur est comptabilisée dans une métrique
+    Prometheus et journalisée, sans être propagée.
+    """
     line = json.dumps(record, ensure_ascii=False, allow_nan=False)
     try:
         local_path.parent.mkdir(parents=True, exist_ok=True)
@@ -153,6 +173,8 @@ def _persist_record(record: dict, local_path: Path, gcs_prefix: str) -> None:
 
     if PREDICTION_BUCKET:
         try:
+            # Import différé : évite la dépendance google-cloud-storage quand
+            # PREDICTION_BUCKET n'est pas configuré (dev local).
             from google.cloud import storage
 
             client = storage.Client()
@@ -176,6 +198,12 @@ _retrain_status: dict = {
 
 
 def _run_retrain_job(rows_added: int) -> None:
+    """Exécute le pipeline de réentraînement complet en tâche de fond.
+
+    Appelée dans un thread séparé par /retrain/upload ; met à jour
+    `_retrain_status` à chaque étape et libère le verrou de réentraînement
+    à la fin, succès ou échec.
+    """
     _retrain_status.update(
         state="running",
         started_at=datetime.now(timezone.utc).isoformat(),
@@ -234,6 +262,7 @@ def _refresh_drift_metrics() -> None:
 
 
 def _drift_monitor_loop() -> None:
+    """Boucle de fond : recalcule périodiquement les métriques de dérive (drift)."""
     while True:
         _refresh_drift_metrics()
         time.sleep(DRIFT_CHECK_INTERVAL_SECONDS)
@@ -243,6 +272,7 @@ threading.Thread(target=_drift_monitor_loop, daemon=True).start()
 
 
 def _cloud_monitoring_flush_loop() -> None:
+    """Boucle de fond : pousse périodiquement les métriques vers GCP Cloud Monitoring."""
     while True:
         time.sleep(CLOUD_MONITORING_FLUSH_INTERVAL_SECONDS)
         cloud_monitoring.flush(
@@ -261,11 +291,13 @@ threading.Thread(target=_cloud_monitoring_flush_loop, daemon=True).start()
 
 @app.get("/live")
 def liveness():
+    """Sonde de liveness : le process répond, sans vérifier le modèle."""
     return {"status": "alive"}
 
 
 @app.get("/ready")
 def readiness():
+    """Sonde de readiness : vérifie que le modèle et ses métadonnées sont chargeables."""
     try:
         _, metadata = load_assets()
         return {
@@ -275,21 +307,26 @@ def readiness():
             "failure_window": metadata.get("failure_window"),
         }
     except Exception as exc:
+        # 503 plutôt que 500 : signale explicitement une indisponibilité
+        # temporaire (artefacts manquants) aux orchestrateurs de déploiement.
         raise HTTPException(status_code=503, detail=str(exc))
 
 
 @app.get("/health")
 def health():
+    """Alias de /ready, conservé pour compatibilité avec les checks génériques."""
     return readiness()
 
 
 @app.get("/metrics")
 def metrics_endpoint():
+    """Expose les métriques Prometheus au format texte standard."""
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 @app.post("/feedback")
 def feedback(payload: FeedbackRequest):
+    """Enregistre le résultat réel observé pour une prédiction déjà émise."""
     record = {
         "prediction_id": payload.prediction_id,
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -302,6 +339,12 @@ def feedback(payload: FeedbackRequest):
 
 @app.post("/retrain/upload")
 async def retrain_upload(file: UploadFile = File(...)):
+    """Reçoit un CSV de données terrain, l'ajoute au jeu de features de
+    production puis déclenche un réentraînement asynchrone.
+
+    Un seul réentraînement peut être en cours à la fois (verrou global) :
+    une requête concurrente reçoit un 409 plutôt que d'être mise en file.
+    """
     if not _retrain_lock.acquire(blocking=False):
         raise HTTPException(status_code=409, detail="Un réentraînement est déjà en cours.")
     try:
@@ -316,12 +359,16 @@ async def retrain_upload(file: UploadFile = File(...)):
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         rows_added = append_feature_dataset(new_rows, PRODUCTION_FEATURES_PATH)
     except HTTPException:
+        # Validation échouée avant le lancement du job : libérer le verrou
+        # immédiatement plutôt que d'attendre un job qui ne démarrera jamais.
         _retrain_lock.release()
         raise
     except Exception:
         _retrain_lock.release()
         raise
 
+    # Le job tourne dans un thread daemon : la requête HTTP répond tout de
+    # suite, l'avancement se consulte ensuite via /retrain/status.
     thread = threading.Thread(target=_run_retrain_job, args=(rows_added,), daemon=True)
     thread.start()
     logger.info("automatic retrain triggered rows_added=%s", rows_added)
@@ -330,16 +377,21 @@ async def retrain_upload(file: UploadFile = File(...)):
 
 @app.get("/retrain/status")
 def retrain_status():
+    """Renvoie l'état courant (ou le dernier connu) du job de réentraînement."""
     return _retrain_status
 
 
 @app.post("/predict", response_model=PredictionResponse)
 def predict(payload: PredictionRequest):
+    """Calcule la probabilité de panne à partir de l'historique fourni et
+    journalise la prédiction (télémétrie locale/GCS + métriques Prometheus)."""
     start = time.perf_counter()
     model, metadata = load_assets()
     rows = [{"engine_id": payload.engine_id, **snap.model_dump()} for snap in payload.history]
     raw = pd.DataFrame(rows)
     feat = build_causal_features(raw)
+    # Seul le dernier cycle de l'historique est prédit : les cycles précédents
+    # ne servent qu'à calculer les features causales (fenêtres glissantes).
     last = feat.iloc[[-1]]
     features = metadata["selected_features"]
     missing = [c for c in features if c not in last.columns]
@@ -347,6 +399,7 @@ def predict(payload: PredictionRequest):
         raise HTTPException(status_code=422, detail=f"Features manquantes: {missing}")
 
     probability = float(model.predict_proba(last[features])[:, 1][0])
+    # Seuil de décision fixé lors de l'entraînement (calibré, pas 0.5 par défaut).
     threshold = float(metadata["threshold"])
     risk = "HIGH" if probability >= threshold else "LOW"
     now = datetime.now(timezone.utc)

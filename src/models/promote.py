@@ -10,6 +10,8 @@ from src.utils.fingerprints import runtime_metadata
 
 
 def main() -> dict:
+    """Compare le candidat optimisé (issu de optimize.py) au modèle champion actuel
+    et le promeut (remplace model.joblib) s'il passe les garde-fous et fait mieux."""
     champion_meta_path = MODELS_DIR / "model_metadata.json"
     candidate_meta_path = MODELS_DIR / "candidates" / "xgboost_optimized_metadata.json"
     candidate_model_path = MODELS_DIR / "candidates" / "xgboost_optimized.joblib"
@@ -25,7 +27,11 @@ def main() -> dict:
     champ_val = champion["validation_metrics"]
     cand_val = candidate["validation_metrics"]
 
+    # Garde-fous qualité : le candidat doit rester au-dessus des seuils minimums,
+    # indépendamment de sa comparaison avec le champion.
     guardrails_ok = cand_val["recall"] >= MIN_RECALL and cand_val["pr_auc"] >= MIN_PR_AUC
+    # Comparaison selon le même ordre de priorité que la sélection de modèle
+    # (recall -> coût métier -> PR-AUC -> Brier), défini dans validation_sort_key.
     better = validation_sort_key(cand_val) < validation_sort_key(champ_val)
     promoted = bool(guardrails_ok and better)
 
@@ -41,6 +47,7 @@ def main() -> dict:
     if promoted:
         shutil.copy2(candidate_model_path, MODELS_DIR / "model.joblib")
         runtime = runtime_metadata()
+        # Version = sha git court si disponible, sinon fallback sur le hash du dataset.
         version_token = runtime["git_sha"][:12] if runtime["git_sha"] != "unknown" else champion.get("dataset_manifest_sha256", "unknown")[:12]
         champion.update(runtime)
         champion.update(

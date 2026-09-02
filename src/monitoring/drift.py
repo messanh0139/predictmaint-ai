@@ -19,6 +19,8 @@ def psi(reference: pd.Series, current: pd.Series, bins: int = 10) -> float:
     quantiles = np.unique(np.quantile(ref, np.linspace(0, 1, bins + 1)))
     if len(quantiles) < 3:
         return 0.0
+    # Bornes extrêmes ouvertes : toute valeur future hors de la plage de référence
+    # tombe quand même dans le premier ou dernier bin au lieu d'être perdue.
     quantiles[0] = -np.inf
     quantiles[-1] = np.inf
     ref_hist, _ = np.histogram(ref, bins=quantiles)
@@ -35,6 +37,7 @@ def statistical_drift_report(
     psi_threshold: float = 0.20,
     min_samples: int = 20,
 ) -> dict:
+    """Compare la distribution courante à la référence (PSI par feature) et agrège un statut d'alerte."""
     if reference is None:
         reference = pd.read_csv(REFERENCE_DIR / "reference_features.csv")
 
@@ -70,12 +73,14 @@ def statistical_drift_report(
         **base,
         "drifted_features": drifted,
         "drifted_share": share,
+        # Alerte globale si au moins 20% des features ont dérivé, indépendamment du seuil PSI par feature.
         "status": "alert" if share >= 0.20 else "ok",
         "psi_by_feature": values,
     }
 
 
 def current_features_from_prediction_log(path: str | Path) -> pd.DataFrame:
+    """Reconstruit un DataFrame de features à partir des snapshots stockés dans le log de prédictions (JSONL)."""
     rows = []
     p = Path(path)
     if not p.exists():
@@ -89,10 +94,12 @@ def current_features_from_prediction_log(path: str | Path) -> pd.DataFrame:
 
 
 def generate_evidently_report(current: pd.DataFrame, output_path: str | Path) -> Path | None:
+    """Génère un rapport HTML de drift via evidently, si la dépendance optionnelle est installée."""
     try:
         from evidently import Report
         from evidently.presets import DataDriftPreset
     except Exception:
+        # Dépendance optionnelle : on n'échoue pas si evidently n'est pas installé.
         return None
     reference = pd.read_csv(REFERENCE_DIR / "reference_features.csv")
     common = [c for c in reference.columns if c in current.columns]
@@ -107,6 +114,7 @@ def generate_evidently_report(current: pd.DataFrame, output_path: str | Path) ->
 
 
 def main() -> None:
+    """CLI : calcule le rapport de drift statistique (et le rapport HTML evidently si possible)."""
     p = argparse.ArgumentParser()
     p.add_argument("current", help="CSV de features ou fichier predictions.jsonl")
     p.add_argument("--jsonl", action="store_true")

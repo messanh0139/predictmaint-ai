@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+# parents[1] : src/config.py -> src/ -> racine du projet.
 ROOT = Path(__file__).resolve().parents[1]
 RAW_DIR = ROOT / "data" / "raw"
 PROCESSED_DIR = ROOT / "data" / "processed"
@@ -10,6 +11,7 @@ REFERENCE_DIR = ROOT / "data" / "reference"
 MODELS_DIR = ROOT / "models"
 REPORTS_DIR = ROOT / "reports"
 
+# Horizon (en cycles) utilisé pour définir le label "panne imminente" (voir src/data/targets.py).
 FAILURE_WINDOW = int(os.getenv("FAILURE_WINDOW", "30"))
 RANDOM_STATE = int(os.getenv("RANDOM_STATE", "42"))
 VALIDATION_SIZE = float(os.getenv("VALIDATION_SIZE", "0.20"))
@@ -40,6 +42,8 @@ ROLLING_SENSORS = [
 ]
 ROLLING_WINDOWS = [5, 10, 20]
 
+# Colonnes à exclure des features d'entraînement/inférence (identifiants, cibles,
+# ou colonnes utilisées uniquement pour la labellisation) afin d'éviter toute fuite.
 FORBIDDEN_MODEL_COLUMNS = {
     ID_COL,
     TARGET_COL,

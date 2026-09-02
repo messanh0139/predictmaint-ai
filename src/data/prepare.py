@@ -24,6 +24,7 @@ from src.utils.fingerprints import canonical_json_sha256, sha256_file
 
 
 def _positive_rate(df: pd.DataFrame) -> float:
+    """Proportion de lignes en classe positive (panne imminente), pour le manifeste."""
     return float(df[TARGET_COL].mean())
 
 
@@ -91,6 +92,8 @@ def main() -> None:
     if legacy_test_features.exists():
         legacy_test_features.unlink()
 
+    # Echantillon de référence (features uniquement, sans ID/cible) pour le monitoring
+    # de dérive en production : taille plafonnée à 5000 lignes, seed fixe pour la reproductibilité.
     reference_cols = [
         c for c in train_features.columns if c not in {ID_COL, TARGET_COL, RUL_COL}
     ]
@@ -98,6 +101,7 @@ def main() -> None:
         min(5000, len(train_features)), random_state=42
     ).to_csv(REFERENCE_DIR / "reference_features.csv", index=False)
 
+    # Garde-fou anti-fuite : un même moteur ne doit apparaître que dans une seule partition.
     train_engines = set(map(int, train_raw[ID_COL].unique()))
     calibration_engines = set(map(int, calibration_raw[ID_COL].unique()))
     val_engines = set(map(int, val_raw[ID_COL].unique()))

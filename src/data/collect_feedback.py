@@ -11,6 +11,7 @@ from src.features.build_features import build_causal_features
 
 
 def _read_jsonl(path: Path) -> list[dict]:
+    """Lit un fichier JSON Lines (un objet JSON par ligne) ; liste vide si absent."""
     if not path.exists():
         return []
     rows = []
@@ -23,6 +24,9 @@ def _read_jsonl(path: Path) -> list[dict]:
 
 
 def _read_gcs_prefix(bucket_name: str, prefix: str) -> list[dict]:
+    """Lit tous les objets JSON sous un préfixe d'un bucket GCS."""
+    # Import local : évite de rendre google-cloud-storage obligatoire quand on
+    # travaille en local avec --predictions/--feedback.
     from google.cloud import storage
 
     client = storage.Client()
@@ -34,6 +38,12 @@ def _read_gcs_prefix(bucket_name: str, prefix: str) -> list[dict]:
 
 
 def build_feedback_feature_dataset(predictions: list[dict], feedback: list[dict]) -> pd.DataFrame:
+    """Associe chaque prédiction à son feedback (vérité terrain) pour créer des lignes de retraining.
+
+    Pour chaque paire prédiction/feedback disponible, recalcule les features causales
+    à partir de l'historique brut fourni avec la prédiction, puis ne garde que la
+    dernière ligne (état au moment de la prédiction).
+    """
     feedback_by_id = {x["prediction_id"]: x for x in feedback if x.get("prediction_id")}
     rows = []
     for pred in predictions:
@@ -46,6 +56,7 @@ def build_feedback_feature_dataset(predictions: list[dict], feedback: list[dict]
         raw = pd.DataFrame(
             [{ID_COL: production_engine_id, **snap} for snap in history]
         )
+        # Dernière ligne = état des features au moment où la prédiction a été faite.
         feat = build_causal_features(raw).iloc[[-1]].copy()
         feat[TARGET_COL] = int(fb["actual_failure_within_30_cycles"])
         feat["source_prediction_id"] = pred["prediction_id"]
@@ -97,6 +108,7 @@ def append_feature_dataset(new_rows: pd.DataFrame, output: Path) -> int:
 
 
 def main() -> None:
+    """CLI : construit le dataset de retraining à partir de fichiers locaux ou d'un bucket GCS."""
     p = argparse.ArgumentParser()
     p.add_argument("--predictions", type=Path)
     p.add_argument("--feedback", type=Path)

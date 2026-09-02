@@ -9,17 +9,22 @@ import api.main as api
 
 
 class DummyModel:
+    # Modèle factice renvoyant toujours une forte probabilité de panne (0.8),
+    # pour tester l'API de prédiction sans dépendre d'un vrai modèle entraîné.
     def predict_proba(self, x):
         return np.tile(np.array([[0.2, 0.8]]), (len(x), 1))
 
 
 def _snapshot(cycle: int):
+    # Construit une ligne de capteurs valide (tous les champs requis) pour un cycle donné.
     row = {"cycle": cycle, "setting_1": 0.0, "setting_2": 0.0, "setting_3": 100.0}
     row.update({f"sensor_{i}": float(i) for i in range(1, 22)})
     return row
 
 
 def test_liveness_does_not_require_model():
+    # Le endpoint /live (probe Kubernetes) doit répondre même sans modèle chargé :
+    # il signale seulement que le processus tourne, pas qu'il est prêt à prédire.
     client = TestClient(api.app)
     response = client.get("/live")
     assert response.status_code == 200
@@ -27,6 +32,8 @@ def test_liveness_does_not_require_model():
 
 
 def test_readiness_reports_missing_model(monkeypatch, tmp_path):
+    # Le endpoint /ready doit renvoyer 503 tant qu'aucun modèle/metadata n'est chargé,
+    # afin d'éviter de router du trafic vers une instance non opérationnelle.
     monkeypatch.setattr(api, "MODEL_PATH", tmp_path / "none.joblib")
     monkeypatch.setattr(api, "METADATA_PATH", tmp_path / "none.json")
     monkeypatch.setattr(api, "_model", None)
@@ -36,6 +43,9 @@ def test_readiness_reports_missing_model(monkeypatch, tmp_path):
 
 
 def test_prediction_contract_with_mocked_model(monkeypatch, tmp_path):
+    # Vérifie le contrat complet de /predict avec un modèle et des metadata mockés :
+    # la réponse expose bien le risque calculé et la version du modèle, et la
+    # prédiction est journalisée sur disque (utile pour le futur retraining).
     monkeypatch.setattr(api, "_model", DummyModel())
     monkeypatch.setattr(
         api,
@@ -50,7 +60,7 @@ def test_prediction_contract_with_mocked_model(monkeypatch, tmp_path):
         },
     )
     monkeypatch.setattr(api, "PREDICTION_LOG_PATH", tmp_path / "predictions.jsonl")
-    monkeypatch.setattr(api, "PREDICTION_BUCKET", None)
+    monkeypatch.setattr(api, "PREDICTION_BUCKET", None)  # pas d'upload cloud pendant le test
     client = TestClient(api.app)
     response = client.post(
         "/predict",
@@ -58,12 +68,15 @@ def test_prediction_contract_with_mocked_model(monkeypatch, tmp_path):
     )
     assert response.status_code == 200
     body = response.json()
+    # DummyModel renvoie 0.8 > threshold 0.5, donc le risque attendu est HIGH.
     assert body["risk"] == "HIGH"
     assert body["model_version"] == "test-v1"
     assert (tmp_path / "predictions.jsonl").exists()
 
 
 def test_cycles_must_be_strictly_increasing():
+    # L'historique de cycles doit être trié de façon strictement croissante ;
+    # un ordre incohérent doit être rejeté par la validation (422) avant toute prédiction.
     client = TestClient(api.app)
     response = client.post(
         "/predict",
@@ -73,6 +86,7 @@ def test_cycles_must_be_strictly_increasing():
 
 
 def test_metrics_endpoint_is_exposed():
+    # Le endpoint /metrics doit exposer les métriques Prometheus (scrapées par le monitoring).
     client = TestClient(api.app)
     response = client.get("/metrics")
     assert response.status_code == 200
@@ -80,6 +94,8 @@ def test_metrics_endpoint_is_exposed():
 
 
 def _upload_csv(engine_ids, cycles_per_engine: int = 5) -> bytes:
+    # Génère un CSV de retraining valide pour un ou plusieurs moteurs,
+    # avec une étiquette "pas de panne" par défaut sur chaque ligne.
     rows = []
     for engine_id in engine_ids:
         for cycle in range(1, cycles_per_engine + 1):
@@ -90,6 +106,8 @@ def _upload_csv(engine_ids, cycles_per_engine: int = 5) -> bytes:
 
 
 def test_retrain_status_defaults_to_idle(monkeypatch):
+    # L'état de retraining exposé par /retrain/status doit refléter fidèlement
+    # l'état interne "idle" (aucun job en cours) fixé via monkeypatch.
     monkeypatch.setattr(
         api,
         "_retrain_status",
@@ -109,6 +127,8 @@ def test_retrain_status_defaults_to_idle(monkeypatch):
 
 
 def test_retrain_upload_rejects_missing_columns():
+    # Un CSV auquel il manque les colonnes de capteurs requises doit être
+    # rejeté (422) avant de déclencher un job de retraining.
     client = TestClient(api.app)
     response = client.post(
         "/retrain/upload",
@@ -118,11 +138,15 @@ def test_retrain_upload_rejects_missing_columns():
 
 
 def test_retrain_upload_triggers_background_job_and_reports_failure(monkeypatch, tmp_path):
+    # Vérifie que l'upload lance bien un job de retraining en arrière-plan,
+    # et que l'échec du sous-processus d'entraînement remonte proprement
+    # dans le statut (state="failed" + message d'erreur), sans planter l'API.
     monkeypatch.setattr(api, "PRODUCTION_FEATURES_PATH", tmp_path / "feedback_features.csv")
 
     started = threading.Event()
 
     def fake_run(cmd, check, env):
+        # Simule l'échec du script de retraining réel (pas de subprocess dans les tests).
         started.set()
         raise RuntimeError("subprocess disabled in test")
 
@@ -139,6 +163,7 @@ def test_retrain_upload_triggers_background_job_and_reports_failure(monkeypatch,
     assert body["rows_added"] == 2
 
     assert started.wait(timeout=5)
+    # Le job tourne en tâche de fond : on attend la fin (ou un timeout) en pollant le statut.
     deadline = time.time() + 5
     status = client.get("/retrain/status").json()
     while status["state"] == "running" and time.time() < deadline:
@@ -149,6 +174,9 @@ def test_retrain_upload_triggers_background_job_and_reports_failure(monkeypatch,
 
 
 def test_retrain_upload_rejects_concurrent_trigger():
+    # Un seul job de retraining doit pouvoir tourner à la fois : on prend le verrou
+    # manuellement pour simuler un job déjà en cours, et on vérifie que la requête
+    # suivante est rejetée (409) plutôt que de démarrer un second job en parallèle.
     assert api._retrain_lock.acquire(blocking=False)
     try:
         client = TestClient(api.app)

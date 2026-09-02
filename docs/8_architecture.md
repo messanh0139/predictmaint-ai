@@ -1,0 +1,1 @@
+![Architecture technique](home/jes/blocs_certif_Messanh_Yaovi_KODJO/predictmaint_ai_architecture.png)

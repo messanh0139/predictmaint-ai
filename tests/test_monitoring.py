@@ -3,10 +3,15 @@ import json
 from src.monitoring.performance import performance_report
 
 
+# Petit utilitaire de test : écrit une liste de dictionnaires au format JSONL,
+# comme le font les journaux de prédictions et de feedback en production.
 def _write_jsonl(path, rows):
     path.write_text("\n".join(json.dumps(row) for row in rows) + "\n", encoding="utf-8")
 
 
+# Vérifie que le rapport de performance applique bien le seuil de décision
+# propre à la version du modèle de chaque prédiction, plutôt qu'un seuil
+# global unique qui fausserait les métriques en cas de changement de modèle.
 def test_performance_uses_each_predictions_versioned_threshold(tmp_path):
     predictions = []
     feedback = []
@@ -45,6 +50,9 @@ def test_performance_uses_each_predictions_versioned_threshold(tmp_path):
     assert set(report["per_model_version"]) == {"vA", "vB"}
 
 
+# Vérifie que le rapport de drift refuse de conclure statistiquement quand
+# l'échantillon courant est trop petit, pour éviter un diagnostic de dérive
+# peu fiable (faux positif ou faux négatif) basé sur trop peu de données.
 def test_drift_report_requires_enough_current_samples():
     import pandas as pd
 

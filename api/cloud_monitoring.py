@@ -33,6 +33,11 @@ _last_latency_sum = 0.0
 
 
 def _get_client() -> monitoring_v3.MetricServiceClient | None:
+    """Retourne un client Cloud Monitoring mis en cache (créé une seule fois).
+
+    Si aucune credential/projet GCP n'est détecté, désactive l'export de façon
+    permanente pour ce process (`_disabled`) au lieu de retenter à chaque appel.
+    """
     global _client, _project_id, _disabled
     if _disabled:
         return None
@@ -52,6 +57,7 @@ def _get_client() -> monitoring_v3.MetricServiceClient | None:
 
 
 def _resource(project_id: str, region: str) -> monitored_resource_pb2.MonitoredResource:
+    """Construit la ressource surveillée (`generic_task`) associée aux métriques exportées."""
     return monitored_resource_pb2.MonitoredResource(
         type="generic_task",
         labels={
@@ -65,6 +71,11 @@ def _resource(project_id: str, region: str) -> monitored_resource_pb2.MonitoredR
 
 
 def _samples(metric_object, suffix: str = "") -> Iterable:
+    """Itère les échantillons prometheus_client d'un objet, filtrés par suffixe.
+
+    Exclut systématiquement les échantillons `_created` (métadonnée
+    prometheus_client sans intérêt pour Cloud Monitoring).
+    """
     for family in metric_object.collect():
         for sample in family.samples:
             if sample.name.endswith(suffix) and not sample.name.endswith("_created"):
@@ -72,6 +83,7 @@ def _samples(metric_object, suffix: str = "") -> Iterable:
 
 
 def _gauge_series(resource, metric_type: str, labels: dict, value: float, now: float) -> monitoring_v3.TimeSeries:
+    """Construit une TimeSeries Cloud Monitoring de type GAUGE (valeur instantanée)."""
     ts = monitoring_v3.TimeSeries()
     ts.metric.type = METRIC_PREFIX + metric_type
     for key, val in labels.items():
@@ -170,6 +182,9 @@ def flush(
     drift_psi,
     latency,
 ) -> None:
+    """Point d'entrée principal : construit les TimeSeries et les envoie à Cloud
+    Monitoring. Ne fait rien silencieusement si l'export est désactivé (pas de
+    credentials GCP) ou s'il n'y a aucune série à envoyer."""
     client = _get_client()
     if client is None:
         return

@@ -10,10 +10,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def read_json(relative: str) -> dict:
+    """Charge un fichier JSON du projet à partir d'un chemin relatif à la racine."""
     return json.loads((ROOT / relative).read_text(encoding="utf-8"))
 
 
 def sha256(path: Path) -> str:
+    """Calcule le hash SHA-256 d'un fichier par lecture en flux (gros fichiers)."""
     h = hashlib.sha256()
     with path.open("rb") as f:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
@@ -22,6 +24,11 @@ def sha256(path: Path) -> str:
 
 
 def main() -> int:
+    """Vérifie la cohérence de bout en bout du pipeline (données, modèle,
+    registre, holdout externe) et écrit un rapport de validation JSON.
+
+    Sort avec un code 1 si un des contrôles échoue (utilisable en CI).
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--tests-passed", type=int, default=None)
     parser.add_argument("--output", default="reports/project_validation.json")
@@ -41,6 +48,8 @@ def main() -> int:
         None,
     )
 
+    # Chaque entrée vérifie la cohérence entre deux artefacts produits par des
+    # étapes différentes du pipeline (split, entraînement, registre, holdout).
     checks = {
         "split_has_no_engine_overlap": not manifest.get("engine_overlap"),
         "manifest_matches_model_metadata": (
@@ -62,6 +71,8 @@ def main() -> int:
             registry_entry and model_path.exists() and registry_entry.get("model_sha256") == sha256(model_path)
         ),
         "external_holdout_locked": bool(external.get("locked_external_holdout")),
+        # Le jeu de test externe ne doit jamais être écrit sur disque pendant le
+        # développement, pour empêcher toute fuite de données vers l'entraînement.
         "holdout_not_materialized_in_development": (
             isinstance(manifest.get("external_test"), dict)
             and manifest["external_test"].get("status") == "LOCKED_NOT_MATERIALIZED_IN_DEVELOPMENT_PIPELINE"

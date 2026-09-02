@@ -19,6 +19,8 @@ def build_model_pipeline(
     steps: list[tuple[str, BaseEstimator]] = [
         ("imputer", SimpleImputer(strategy="median")),
     ]
+    # Standardisation optionnelle : nécessaire pour les modèles linéaires,
+    # inutile (et sans effet) pour les modèles à base d'arbres.
     if scale_features:
         steps.append(("scaler", StandardScaler()))
     steps.append(("model", estimator))

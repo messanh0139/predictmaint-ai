@@ -15,6 +15,9 @@ from src.models.pipelines import build_model_pipeline
 
 
 def main(n_trials: int = 30) -> None:
+    """Optimise les hyperparamètres XGBoost par recherche bayésienne (Optuna),
+    calibre le seuil de décision, puis compare le candidat au baseline xgboost
+    du leaderboard existant. Le test externe n'est jamais utilisé ici."""
     train_df = pd.read_csv(PROCESSED_DIR / "train_features.csv")
     calibration_df = pd.read_csv(PROCESSED_DIR / "calibration_features.csv")
     val_df = pd.read_csv(PROCESSED_DIR / "val_features.csv")
@@ -26,12 +29,20 @@ def main(n_trials: int = 30) -> None:
 
     positives = max(int(y.sum()), 1)
     negatives = max(int((1 - y).sum()), 1)
+    # Ratio négatifs/positifs utilisé comme scale_pos_weight pour compenser
+    # le déséquilibre de classes (pannes rares).
     class_ratio = negatives / positives
+    # Groupé par moteur (ID_COL) pour qu'un même moteur ne se retrouve jamais
+    # à la fois en train et en test au sein d'un pli -> évite la fuite de données.
     cv = StratifiedGroupKFold(n_splits=CV_FOLDS, shuffle=True, random_state=RANDOM_STATE)
 
     def objective(trial: optuna.Trial) -> float:
+        """Fonction objectif Optuna : entraîne un pipeline XGBoost avec les
+        hyperparamètres proposés et retourne le PR-AUC moyen en CV groupée."""
         model = build_model_pipeline(
             XGBClassifier(
+                # Plages de recherche resserrées autour de valeurs raisonnables
+                # pour un dataset de taille modeste (évite l'overfitting Optuna).
                 n_estimators=trial.suggest_int("n_estimators", 120, 400),
                 max_depth=trial.suggest_int("max_depth", 3, 7),
                 learning_rate=trial.suggest_float("learning_rate", 0.01, 0.18, log=True),
@@ -58,10 +69,14 @@ def main(n_trials: int = 30) -> None:
         trial.set_user_attr("cv_std", float(scores.std()))
         return float(scores.mean())
 
+    # TPE (Tree-structured Parzen Estimator) : sampler bayésien d'Optuna, seed
+    # fixée pour reproductibilité des résultats d'optimisation.
     sampler = optuna.samplers.TPESampler(seed=RANDOM_STATE)
     study = optuna.create_study(direction="maximize", study_name="predictmaint-xgb", sampler=sampler)
     study.optimize(objective, n_trials=n_trials)
 
+    # Réentraîne le meilleur jeu d'hyperparamètres trouvé sur tout le train
+    # (les essais Optuna n'utilisaient que des sous-plis de cross-validation).
     best_model = build_model_pipeline(
         XGBClassifier(
             **study.best_params,
@@ -75,6 +90,7 @@ def main(n_trials: int = 30) -> None:
     best_model.fit(X, y)
     X_cal, y_cal = xy(calibration_df, features)
     cal_prob = best_model.predict_proba(X_cal)[:, 1]
+    # Seuil calibré sur une partition dédiée, disjointe du train et de la validation.
     threshold, calibration_metrics = choose_threshold(y_cal, cal_prob)
 
     X_val, y_val = xy(val_df, features)
@@ -86,6 +102,8 @@ def main(n_trials: int = 30) -> None:
     candidate_path = candidate_dir / "xgboost_optimized.joblib"
     joblib.dump(best_model, candidate_path)
 
+    # Compare le candidat optimisé au modèle xgboost par défaut du leaderboard
+    # produit par train.py (référence non optimisée).
     baseline_xgb = None
     leaderboard_path = MODELS_DIR / "leaderboard.csv"
     if leaderboard_path.exists():
@@ -104,6 +122,7 @@ def main(n_trials: int = 30) -> None:
         if baseline_xgb is None
         else float(float(baseline_xgb["business_cost"]) - val_metrics["business_cost"])
     )
+    # Garde contre la division par zéro si le baseline avait un coût nul.
     business_cost_gain_pct = (
         None
         if baseline_xgb is None or float(baseline_xgb["business_cost"]) == 0
