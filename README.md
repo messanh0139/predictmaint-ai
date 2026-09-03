@@ -1,4 +1,4 @@
-# PredictMaint AI — Maintenance Prédictive des Moteurs Turbofan
+# PredictMaint AI : Maintenance Prédictive des Moteurs Turbofan
 
 ## Technologies Utilisées
 
