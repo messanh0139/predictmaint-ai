@@ -1,0 +1,200 @@
+version: '3.8'
+
+services:
+  # Pipeline 1: ETL/Ingestion
+  mongodb:
+    image: mongo:7.0
+    container_name: predictmaint-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-admin123}
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - mlops-network
+
+  postgresql:
+    image: postgres:16
+    container_name: predictmaint-postgresql
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: predictmaint
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+    networks:
+      - mlops-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Pipeline 2: MLOps & Training
+  mlflow:
+    build:
+      context: ../..
+      dockerfile: infrastructure/deployment/Dockerfile.mlflow
+    container_name: predictmaint-mlflow
+    ports:
+      - "5000:5000"
+    environment:
+      - BACKEND_STORE_URI=sqlite:///mlflow/mlflow.db
+      - ARTIFACT_ROOT=/mlflow/artifacts
+    volumes:
+      - mlflow_data:/mlflow
+    networks:
+      - mlops-network
+    command: mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:///mlflow/mlflow.db --default-artifact-root /mlflow/artifacts
+
+  # Pipeline 3: API d'Inférence
+  api:
+    build:
+      context: ../..
+      dockerfile: infrastructure/deployment/Dockerfile.api
+    container_name: predictmaint-api
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_PATH=/app/storage/models/production
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID}
+      - GCP_BUCKET=${GCP_BUCKET}
+    volumes:
+      - ../../storage:/app/storage
+    networks:
+      - mlops-network
+    depends_on:
+      - postgresql
+      - prometheus
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Pipeline 3: Dashboard React
+  dashboard:
+    build:
+      context: ../..
+      dockerfile: infrastructure/deployment/Dockerfile.dashboard
+    container_name: predictmaint-dashboard
+    ports:
+      - "3000:80"
+    environment:
+      - REACT_APP_API_URL=http://api:8000
+    networks:
+      - mlops-network
+    depends_on:
+      - api
+
+  # Orchestration: Apache Airflow
+  airflow-webserver:
+    image: apache/airflow:2.8.1
+    container_name: predictmaint-airflow-webserver
+    ports:
+      - "8080:8080"
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-postgres/airflow
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    volumes:
+      - ../../orchestration/airflow/dags:/opt/airflow/dags
+      - ../../orchestration/airflow/plugins:/opt/airflow/plugins
+      - airflow_logs:/opt/airflow/logs
+    networks:
+      - mlops-network
+    depends_on:
+      - airflow-postgres
+    command: webserver
+
+  airflow-scheduler:
+    image: apache/airflow:2.8.1
+    container_name: predictmaint-airflow-scheduler
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-postgres/airflow
+    volumes:
+      - ../../orchestration/airflow/dags:/opt/airflow/dags
+      - airflow_logs:/opt/airflow/logs
+    networks:
+      - mlops-network
+    depends_on:
+      - airflow-postgres
+    command: scheduler
+
+  airflow-postgres:
+    image: postgres:16
+    container_name: predictmaint-airflow-postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow_postgres_data:/var/lib/postgresql/data
+    networks:
+      - mlops-network
+
+  # Monitoring: Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: predictmaint-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - mlops-network
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+
+  # Monitoring: Grafana
+  grafana:
+    build:
+      context: ../..
+      dockerfile: infrastructure/deployment/Dockerfile.grafana
+    container_name: predictmaint-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../monitoring/grafana:/etc/grafana/provisioning
+    networks:
+      - mlops-network
+    depends_on:
+      - prometheus
+
+  # Monitoring: cAdvisor
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: predictmaint-cadvisor
+    ports:
+      - "8082:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - mlops-network
+    privileged: true
+
+networks:
+  mlops-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+  postgresql_data:
+  mlflow_data:
+  airflow_postgres_data:
+  airflow_logs:
+  prometheus_data:
+  grafana_data:

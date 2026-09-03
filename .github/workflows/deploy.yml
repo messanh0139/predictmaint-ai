@@ -46,8 +46,8 @@ jobs:
 
       - name: Static, unit and anti-leakage checks
         run: |
-          ruff check api dashboard src tests scripts
-          pytest --cov=src --cov=api --cov-report=term-missing
+          ruff check pipelines/3_inference_ihm/api src infrastructure/tests infrastructure/scripts
+          pytest --cov=src --cov=pipelines.3_inference_ihm.api --cov-report=term-missing infrastructure/tests/
 
       - name: Validate required deployment configuration
         shell: bash
@@ -72,7 +72,7 @@ jobs:
         shell: bash
         run: |
           TRAINER_IMAGE="${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${REPOSITORY}/predictmaint-trainer:${GITHUB_SHA}"
-          docker build --pull -f Dockerfile.train -t "${TRAINER_IMAGE}" .
+          docker build --pull -f infrastructure/deployment/Dockerfile.train -t "${TRAINER_IMAGE}" .
           docker push "${TRAINER_IMAGE}"
           echo "TRAINER_IMAGE=${TRAINER_IMAGE}" >> "${GITHUB_ENV}"
 
@@ -99,13 +99,14 @@ jobs:
       - name: Download the validated champion
         shell: bash
         run: |
+          mkdir -p storage/models
           gcloud storage cp "gs://${MODEL_ARTIFACT_BUCKET}/models/champion.json" /tmp/champion.json
           MODEL_OBJECT="$(python -c "import json; print(json.load(open('/tmp/champion.json'))['model_object'])")"
           METADATA_OBJECT="$(python -c "import json; print(json.load(open('/tmp/champion.json'))['metadata_object'])")"
-          gcloud storage cp "gs://${MODEL_ARTIFACT_BUCKET}/${MODEL_OBJECT}" models/model.joblib
-          gcloud storage cp "gs://${MODEL_ARTIFACT_BUCKET}/${METADATA_OBJECT}" models/model_metadata.json
-          test -s models/model.joblib
-          test -s models/model_metadata.json
+          gcloud storage cp "gs://${MODEL_ARTIFACT_BUCKET}/${MODEL_OBJECT}" storage/models/model.joblib
+          gcloud storage cp "gs://${MODEL_ARTIFACT_BUCKET}/${METADATA_OBJECT}" storage/models/model_metadata.json
+          test -s storage/models/model.joblib
+          test -s storage/models/model_metadata.json
 
       - name: Build and push service images
         shell: bash
@@ -113,9 +114,9 @@ jobs:
           API_IMAGE="${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${REPOSITORY}/${API_SERVICE}:${GITHUB_SHA}"
           DASHBOARD_IMAGE="${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${REPOSITORY}/${DASHBOARD_SERVICE}:${GITHUB_SHA}"
           GRAFANA_IMAGE="${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${REPOSITORY}/${GRAFANA_SERVICE}:${GITHUB_SHA}"
-          docker build --pull -t "${API_IMAGE}" .
-          docker build --pull -f Dockerfile.dashboard -t "${DASHBOARD_IMAGE}" .
-          docker build --pull -f Dockerfile.grafana -t "${GRAFANA_IMAGE}" .
+          docker build --pull -f infrastructure/deployment/Dockerfile.api -t "${API_IMAGE}" .
+          docker build --pull -f infrastructure/deployment/Dockerfile.dashboard -t "${DASHBOARD_IMAGE}" .
+          docker build --pull -f infrastructure/deployment/Dockerfile.grafana -t "${GRAFANA_IMAGE}" .
           docker push "${API_IMAGE}"
           docker push "${DASHBOARD_IMAGE}"
           docker push "${GRAFANA_IMAGE}"
@@ -193,17 +194,17 @@ jobs:
       - name: Deploy public presentation dashboard
         shell: bash
         run: |
-          ENV_VARS="API_URL=${API_URL},API_AUDIENCE=${API_URL}"
-          [ -n "${MLFLOW_URL:-}" ] && ENV_VARS="${ENV_VARS},MLFLOW_URL=${MLFLOW_URL}"
-          [ -n "${GRAFANA_URL:-}" ] && ENV_VARS="${ENV_VARS},GRAFANA_URL=${GRAFANA_URL}"
+          ENV_VARS="REACT_APP_API_URL=${API_URL}"
+          [ -n "${MLFLOW_URL:-}" ] && ENV_VARS="${ENV_VARS},REACT_APP_MLFLOW_URL=${MLFLOW_URL}"
+          [ -n "${GRAFANA_URL:-}" ] && ENV_VARS="${ENV_VARS},REACT_APP_GRAFANA_URL=${GRAFANA_URL}"
           gcloud run deploy "${DASHBOARD_SERVICE}" \
             --image "${DASHBOARD_IMAGE}" \
             --region "${REGION}" \
             --platform managed \
             --service-account "${{ secrets.GCP_RUNTIME_SERVICE_ACCOUNT }}" \
             --set-env-vars "${ENV_VARS}" \
-            --port 8501 \
-            --cpu 1 --memory 1Gi --concurrency 20 --timeout 60 --min 0 --max 3 \
+            --port 80 \
+            --cpu 1 --memory 512Mi --concurrency 50 --timeout 60 --min 0 --max 3 \
             --allow-unauthenticated \
             --quiet
 
@@ -221,9 +222,9 @@ jobs:
           curl --fail --retry 5 --retry-delay 5 \
             -H "Authorization: Bearer ${ID_TOKEN}" "${API_URL}/ready"
           DASHBOARD_URL="$(gcloud run services describe "${DASHBOARD_SERVICE}" --region "${REGION}" --format='value(status.url)')"
-          curl --fail --retry 8 --retry-delay 5 "${DASHBOARD_URL}/_stcore/health"
+          curl --fail --retry 8 --retry-delay 5 "${DASHBOARD_URL}/"
           echo "### Production deployed" >> "${GITHUB_STEP_SUMMARY}"
-          echo "- Dashboard: ${DASHBOARD_URL}" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- Dashboard React: ${DASHBOARD_URL}" >> "${GITHUB_STEP_SUMMARY}"
           echo "- API: ${API_URL}" >> "${GITHUB_STEP_SUMMARY}"
           [ -n "${MLFLOW_URL:-}" ] && echo "- MLflow: ${MLFLOW_URL}" >> "${GITHUB_STEP_SUMMARY}"
           [ -n "${GRAFANA_URL:-}" ] && echo "- Grafana: ${GRAFANA_URL} (mot de passe admin dans Secret Manager: ${GRAFANA_SECRET})" >> "${GITHUB_STEP_SUMMARY}"

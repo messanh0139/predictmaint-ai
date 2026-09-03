@@ -1,0 +1,366 @@
+/* Global Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(145deg, #07111f 0%, #0d1b2a 55%, #10283b 100%);
+  min-height: 100vh;
+  color: #f4fbff;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+/* App Container */
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 260px;
+  background: #081521;
+  padding: 2rem 1.5rem;
+  border-right: 1px solid #1e526c;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar h1 {
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
+  color: #f4fbff;
+}
+
+.sidebar-status {
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+.sidebar-status.success {
+  background: #123f35;
+  color: #c9ffe9;
+  border: 1px solid #35b88b;
+}
+
+.sidebar-status.error {
+  background: #5e1c24;
+  color: #ffd7d7;
+  border: 1px solid #e35d6a;
+}
+
+.sidebar-divider {
+  height: 1px;
+  background: #1e526c;
+  margin: 1.5rem 0;
+}
+
+.sidebar h3 {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #a9c8d8;
+  margin-bottom: 1rem;
+}
+
+.service-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.service-link {
+  display: block;
+  padding: 0.7rem;
+  border-radius: 8px;
+  color: #bde9ff;
+  background: #10283b;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.service-link:hover {
+  background: #1e526c;
+  transform: translateX(4px);
+}
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+/* Header Hero */
+.hero {
+  padding: 1.8rem 2rem;
+  border: 1px solid #1e526c;
+  border-radius: 16px;
+  background: linear-gradient(110deg, rgba(12, 42, 58, 0.96), rgba(8, 25, 40, 0.96));
+  margin-bottom: 2rem;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: 2rem;
+  color: #f4fbff;
+}
+
+.hero p {
+  margin: 0.5rem 0 0;
+  color: #a9c8d8;
+  font-size: 1.1rem;
+}
+
+/* Metrics Bar */
+.metrics-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.metric-card {
+  background: rgba(16, 43, 61, 0.85);
+  border: 1px solid #1e526c;
+  padding: 1.5rem;
+  border-radius: 12px;
+}
+
+.metric-label {
+  font-size: 0.9rem;
+  color: #a9c8d8;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metric-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #f4fbff;
+}
+
+/* Tabs */
+.tabs {
+  margin-bottom: 2rem;
+}
+
+.tab-buttons {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 2px solid #1e526c;
+  margin-bottom: 2rem;
+}
+
+.tab-button {
+  padding: 1rem 1.5rem;
+  background: transparent;
+  border: none;
+  color: #a9c8d8;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 3px solid transparent;
+}
+
+.tab-button:hover {
+  color: #bde9ff;
+}
+
+.tab-button.active {
+  color: #f4fbff;
+  border-bottom-color: #35b88b;
+}
+
+.tab-content {
+  background: rgba(16, 43, 61, 0.5);
+  border: 1px solid #1e526c;
+  border-radius: 12px;
+  padding: 2rem;
+}
+
+/* Risk Badges */
+.risk-badge {
+  padding: 1.5rem;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: 800;
+  font-size: 1.4rem;
+  letter-spacing: 0.05em;
+  margin: 1rem 0;
+}
+
+.risk-badge.high {
+  background: #5e1c24;
+  color: #ffd7d7;
+  border: 1px solid #e35d6a;
+}
+
+.risk-badge.low {
+  background: #123f35;
+  color: #c9ffe9;
+  border: 1px solid #35b88b;
+}
+
+/* Buttons */
+.btn {
+  padding: 0.9rem 1.8rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: #35b88b;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: #2a9670;
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background: #1e526c;
+  color: #bde9ff;
+}
+
+.btn-secondary:hover {
+  background: #2a6b8a;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Forms */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #a9c8d8;
+  font-weight: 600;
+}
+
+.form-input,
+.form-select {
+  width: 100%;
+  padding: 0.8rem;
+  background: rgba(8, 21, 33, 0.8);
+  border: 1px solid #1e526c;
+  border-radius: 8px;
+  color: #f4fbff;
+  font-size: 1rem;
+}
+
+.form-input:focus,
+.form-select:focus {
+  outline: none;
+  border-color: #35b88b;
+}
+
+/* Progress Bar */
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(8, 21, 33, 0.8);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 1rem 0;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #35b88b, #2a9670);
+  transition: width 0.3s ease;
+}
+
+/* Alerts */
+.alert {
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+
+.alert-success {
+  background: #123f35;
+  color: #c9ffe9;
+  border: 1px solid #35b88b;
+}
+
+.alert-error {
+  background: #5e1c24;
+  color: #ffd7d7;
+  border: 1px solid #e35d6a;
+}
+
+.alert-info {
+  background: rgba(30, 82, 108, 0.5);
+  color: #bde9ff;
+  border: 1px solid #1e526c;
+}
+
+/* Chart Container */
+.chart-container {
+  background: rgba(8, 21, 33, 0.6);
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin: 1.5rem 0;
+}
+
+/* Loading Spinner */
+.spinner {
+  border: 3px solid rgba(53, 184, 139, 0.3);
+  border-top: 3px solid #35b88b;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 2rem auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .app {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #1e526c;
+  }
+
+  .metrics-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .tab-buttons {
+    flex-wrap: wrap;
+  }
+}

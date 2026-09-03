@@ -16,7 +16,7 @@ from src.features.build_features import candidate_feature_columns
 
 
 def _normalize(s: pd.Series) -> pd.Series:
-    """Ramène un score sur [0, 1] (division par le max) pour rendre comparables des méthodes hétérogènes."""
+    # Ramène un score sur [0, 1] (division par le max) pour rendre comparables des méthodes hétérogènes
     s = s.astype(float).abs()
     m = float(s.max()) if len(s) else 0.0
     return s / m if m > 0 else s * 0.0
@@ -27,12 +27,7 @@ def select_features(
     max_features: int = 40,
     corr_threshold: float = 0.98,
 ):
-    """Sélection de variables ajustée exclusivement sur TRAIN.
-
-    Méthodes combinées :
-    1) variance nulle ; 2) redondance par corrélation ; 3) information mutuelle ;
-    4) importance incorporée Random Forest ; 5) parcimonie L1.
-    """
+    # Sélection de variables ajustée exclusivement sur TRAIN
     features = candidate_feature_columns(train_df)
     X = train_df[features].replace([np.inf, -np.inf], np.nan)
     y = train_df[TARGET_COL].astype(int)
@@ -120,7 +115,7 @@ def select_features(
 
 
 def main() -> None:
-    """Point d'entrée CLI : lance la sélection sur le train et écrit rapport + variables retenues sur disque."""
+    # Point d'entrée CLI : lance la sélection sur le train et écrit rapport + variables retenues sur disque
     MODELS_DIR.mkdir(exist_ok=True)
     train = pd.read_csv(PROCESSED_DIR / "train_features.csv")
     selected, report, removals = select_features(train)

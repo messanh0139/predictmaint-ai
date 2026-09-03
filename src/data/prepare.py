@@ -24,18 +24,12 @@ from src.utils.fingerprints import canonical_json_sha256, sha256_file
 
 
 def _positive_rate(df: pd.DataFrame) -> float:
-    """Proportion de lignes en classe positive (panne imminente), pour le manifeste."""
+    # Proportion de lignes en classe positive (panne imminente), pour le manifeste
     return float(df[TARGET_COL].mean())
 
 
 def load_supplemental_features(path: Path, columns) -> pd.DataFrame:
-    """Charge le lot optionnel de features de production (feedback ou upload direct).
-
-    Retourne un DataFrame vide si le fichier est absent, vide ou sans les colonnes
-    minimales requises : c'est un cas normal (aucune donnée de production pour le
-    moment, par exemple avant la première vraie prédiction en production), pas une
-    erreur qui doit interrompre la préparation.
-    """
+    # Charge le lot optionnel de features de production (feedback ou upload direct)
     if not path.exists() or path.stat().st_size == 0:
         return pd.DataFrame()
     try:
@@ -49,11 +43,7 @@ def load_supplemental_features(path: Path, columns) -> pd.DataFrame:
 
 
 def main() -> None:
-    """Prépare uniquement les partitions de développement.
-
-    Le holdout externe (`test_FD001.txt` + `RUL_FD001.txt`) n'est ni chargé, ni
-    labellisé, ni matérialisé ici. Il reste fermé jusqu'à `src.models.evaluate`.
-    """
+    # Prépare uniquement les partitions de développement
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     REFERENCE_DIR.mkdir(parents=True, exist_ok=True)
 

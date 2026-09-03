@@ -26,18 +26,17 @@ from src.config import (
 
 
 def load_selected_features(path: Path) -> list[str]:
-    """Charge la liste des features retenues (issue de la sélection de features)."""
+    # Charge la liste des features retenues (issue de la sélection de features)
     return json.loads(path.read_text(encoding="utf-8"))
 
 
 def xy(df: pd.DataFrame, features: list[str]):
-    """Sépare un DataFrame en matrice de features (X) et cible binaire (y)."""
+    # Sépare un DataFrame en matrice de features (X) et cible binaire (y)
     return df[features], df[TARGET_COL].astype(int)
 
 
 def _classification_metrics(y_true, prob, pred) -> dict:
-    """Calcule le jeu complet de métriques de classification à partir des labels,
-    probabilités et prédictions binaires déjà seuillées."""
+    # Calcule le jeu complet de métriques de classification à partir des labels,
     y_true = np.asarray(y_true, dtype=int)
     prob = np.asarray(prob, dtype=float)
     pred = np.asarray(pred, dtype=int)
@@ -67,7 +66,7 @@ def _classification_metrics(y_true, prob, pred) -> dict:
 
 
 def metrics(y_true, prob, threshold: float = 0.5) -> dict:
-    """Applique un seuil de décision aux probabilités puis calcule les métriques."""
+    # Applique un seuil de décision aux probabilités puis calcule les métriques
     prob = np.asarray(prob, dtype=float)
     pred = (prob >= threshold).astype(int)
     return {
@@ -77,21 +76,12 @@ def metrics(y_true, prob, threshold: float = 0.5) -> dict:
 
 
 def metrics_from_predictions(y_true, prob, pred) -> dict:
-    """Calcule les métriques quand la décision binaire est déjà versionnée par ligne.
-
-    Utile en monitoring lorsque plusieurs versions du modèle coexistent et que chaque
-    prédiction a été produite avec son propre seuil de décision. On ne remplace jamais
-    ces seuils historiques par une médiane ou un seuil courant.
-    """
+    # Calcule les métriques quand la décision binaire est déjà versionnée par ligne
     return _classification_metrics(y_true, prob, pred)
 
 
 def choose_threshold(y_true, prob, min_recall: float = MIN_RECALL) -> tuple[float, dict]:
-    """Choisit un seuil sur la partition de calibration sans coût quadratique.
-
-    Les métriques indépendantes du seuil (ROC-AUC/AP) ne sont calculées qu'une fois
-    après sélection. Les candidats sont un maillage régulier + quantiles des scores.
-    """
+    # Choisit un seuil sur la partition de calibration sans coût quadratique
     y = np.asarray(y_true, dtype=int)
     p = np.asarray(prob, dtype=float)
     quantiles = np.quantile(p, np.linspace(0.0, 1.0, 101))
@@ -115,7 +105,7 @@ def choose_threshold(y_true, prob, min_recall: float = MIN_RECALL) -> tuple[floa
 
 
 def validation_sort_key(row: dict) -> tuple:
-    """Ordre de promotion : respect du recall, coût, PR-AUC, calibration."""
+    # Ordre de promotion : respect du recall, coût, PR-AUC, calibration
     recall_penalty = 0 if row["recall"] >= MIN_RECALL else 1
     return (
         recall_penalty,

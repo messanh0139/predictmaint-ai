@@ -1,0 +1,68 @@
+steps:
+  - name: python:3.12
+    id: quality-and-train
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        pip install -r requirements.txt -c constraints-model.txt
+        ruff check pipelines/3_inference_ihm/api src infrastructure/tests infrastructure/scripts
+        pytest -q infrastructure/tests/
+        python -m src.data.prepare
+        python -m src.features.select_features
+        python -m src.models.train
+        python -m src.models.optimize --trials 10
+        python -m src.models.promote
+        python -m src.models.quality_gate
+        python -m src.models.register
+
+  - name: gcr.io/cloud-builders/docker
+    id: build
+    args:
+      - build
+      - --pull
+      - -f
+      - infrastructure/deployment/Dockerfile.api
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE}:$COMMIT_SHA
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    id: push
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE}:$COMMIT_SHA
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    id: deploy
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --image
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE}:$COMMIT_SHA
+      - --region
+      - ${_REGION}
+      - --platform
+      - managed
+      - --service-account
+      - ${_RUNTIME_SERVICE_ACCOUNT}
+      - --no-allow-unauthenticated
+      - --cpu
+      - "1"
+      - --memory
+      - 1Gi
+      - --concurrency
+      - "10"
+      - --max
+      - "5"
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE}:$COMMIT_SHA
+
+substitutions:
+  _REGION: europe-west1
+  _REPOSITORY: predictmaint
+  _SERVICE: predictmaint-api
+  _RUNTIME_SERVICE_ACCOUNT: predictmaint-runtime@$PROJECT_ID.iam.gserviceaccount.com

@@ -18,9 +18,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt -c constraints-model.txt
       - name: Static checks
-        run: ruff check api src tests scripts
+        run: ruff check pipelines/3_inference_ihm/api src infrastructure/tests infrastructure/scripts
       - name: Unit and leakage tests
-        run: pytest --cov=src --cov=api --cov-report=term-missing
+        run: pytest --cov=src --cov=pipelines.3_inference_ihm.api --cov-report=term-missing infrastructure/tests/
       - name: Rebuild data partitions
         run: python -m src.data.prepare
       - name: Fit feature selection on TRAIN only
@@ -33,6 +33,6 @@ jobs:
         run: python -m src.models.register
       - name: Verify production artifact contract
         run: |
-          test -s models/model.joblib
-          test -s models/model_metadata.json
-          test -s models/leaderboard.csv
+          test -s storage/models/model.joblib
+          test -s storage/models/model_metadata.json
+          test -s storage/models/leaderboard.csv

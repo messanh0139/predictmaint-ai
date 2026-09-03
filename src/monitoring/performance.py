@@ -11,7 +11,7 @@ from src.models.common import metrics_from_predictions
 
 
 def load_jsonl(path: str | Path) -> pd.DataFrame:
-    """Charge un fichier JSON Lines (log de prédictions ou de feedback) en DataFrame."""
+    # Charge un fichier JSON Lines (log de prédictions ou de feedback) en DataFrame
     rows = []
     p = Path(path)
     if not p.exists():
@@ -25,7 +25,7 @@ def load_jsonl(path: str | Path) -> pd.DataFrame:
 
 
 def _version_report(group: pd.DataFrame) -> dict:
-    """Calcule les métriques de performance pour un sous-ensemble de prédictions d'une même version de modèle."""
+    # Calcule les métriques de performance pour un sous-ensemble de prédictions d'une même version de modèle
     labelled = int(len(group))
     if labelled < 20 or group["actual_failure_within_30_cycles"].nunique() < 2:
         return {
@@ -55,8 +55,7 @@ def _version_report(group: pd.DataFrame) -> dict:
 
 
 def performance_report(predictions_path: str | Path, feedback_path: str | Path) -> dict:
-    """Rapproche les prédictions historiques du feedback terrain (label réel) et calcule les métriques
-    de performance globales ainsi qu'une ventilation par version de modèle."""
+    # Rapproche les prédictions historiques du feedback terrain (label réel) et calcule les métriques
     pred = load_jsonl(predictions_path)
     fb = load_jsonl(feedback_path)
     if pred.empty or fb.empty:

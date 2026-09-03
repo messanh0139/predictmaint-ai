@@ -11,11 +11,7 @@ def build_model_pipeline(
     *,
     scale_features: bool = False,
 ) -> Pipeline:
-    """Build the preprocessing pipeline shared by all model candidates.
-
-    Imputation is always fitted as part of the pipeline to prevent leakage.
-    Scaling is opt-in because linear models need it while tree models do not.
-    """
+    # Build the preprocessing pipeline shared by all model candidates
     steps: list[tuple[str, BaseEstimator]] = [
         ("imputer", SimpleImputer(strategy="median")),
     ]

@@ -21,7 +21,7 @@ BASE_STEPS = [
 
 
 def main(optimize: bool = False, trials: int = 30) -> None:
-    """Orchestre le pipeline de réentraînement complet en exécutant chaque étape comme un sous-processus."""
+    # Orchestre le pipeline de réentraînement complet en exécutant chaque étape comme un sous-processus
     steps = []
     telemetry_bucket = os.getenv("PREDICTION_BUCKET")
     # Le feedback de production n'est intégré que si explicitement activé,

@@ -3,21 +3,21 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-# parents[1] : src/config.py -> src/ -> racine du projet.
+# Chemins du projet
 ROOT = Path(__file__).resolve().parents[1]
-RAW_DIR = ROOT / "data" / "raw"
-PROCESSED_DIR = ROOT / "data" / "processed"
-REFERENCE_DIR = ROOT / "data" / "reference"
-MODELS_DIR = ROOT / "models"
-REPORTS_DIR = ROOT / "reports"
+RAW_DIR = ROOT / "storage" / "raw"
+PROCESSED_DIR = ROOT / "storage" / "processed"
+REFERENCE_DIR = ROOT / "storage" / "reference"
+MODELS_DIR = ROOT / "storage" / "models"
+REPORTS_DIR = ROOT / "storage" / "reports"
 
-# Horizon (en cycles) utilisé pour définir le label "panne imminente" (voir src/data/targets.py).
+# Paramètres d'entraînement
 FAILURE_WINDOW = int(os.getenv("FAILURE_WINDOW", "30"))
 RANDOM_STATE = int(os.getenv("RANDOM_STATE", "42"))
 VALIDATION_SIZE = float(os.getenv("VALIDATION_SIZE", "0.20"))
 CV_FOLDS = int(os.getenv("CV_FOLDS", "5"))
 
-# Hypothèses métier fictives, à valider avec le commanditaire dans un projet réel.
+# Hypothèses métier
 FALSE_NEGATIVE_COST = float(os.getenv("FALSE_NEGATIVE_COST", "10000"))
 FALSE_POSITIVE_COST = float(os.getenv("FALSE_POSITIVE_COST", "500"))
 MIN_RECALL = float(os.getenv("MIN_RECALL", "0.85"))
@@ -34,16 +34,14 @@ BASE_COLUMNS = [
     *[f"sensor_{i}" for i in range(1, 22)],
 ]
 
-# Sous-ensemble de signaux historiquement informatifs sur FD001. La sélection finale
-# reste entièrement data-driven et est ajustée uniquement sur le TRAIN.
+# Capteurs et fenêtres pour features temporelles
 ROLLING_SENSORS = [
     "sensor_2", "sensor_3", "sensor_4", "sensor_7", "sensor_11",
     "sensor_12", "sensor_15", "sensor_17", "sensor_20", "sensor_21",
 ]
 ROLLING_WINDOWS = [5, 10, 20]
 
-# Colonnes à exclure des features d'entraînement/inférence (identifiants, cibles,
-# ou colonnes utilisées uniquement pour la labellisation) afin d'éviter toute fuite.
+# Colonnes interdites pour éviter la fuite de données
 FORBIDDEN_MODEL_COLUMNS = {
     ID_COL,
     TARGET_COL,

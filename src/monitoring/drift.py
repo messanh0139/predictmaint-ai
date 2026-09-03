@@ -11,7 +11,7 @@ from src.config import REFERENCE_DIR, ROOT
 
 
 def psi(reference: pd.Series, current: pd.Series, bins: int = 10) -> float:
-    """Population Stability Index avec bornes apprises sur la référence uniquement."""
+    # Population Stability Index avec bornes apprises sur la référence uniquement
     ref = pd.to_numeric(reference, errors="coerce").dropna().to_numpy()
     cur = pd.to_numeric(current, errors="coerce").dropna().to_numpy()
     if len(ref) < 20 or len(cur) < 20:
@@ -37,7 +37,7 @@ def statistical_drift_report(
     psi_threshold: float = 0.20,
     min_samples: int = 20,
 ) -> dict:
-    """Compare la distribution courante à la référence (PSI par feature) et agrège un statut d'alerte."""
+    # Compare la distribution courante à la référence (PSI par feature) et agrège un statut d'alerte
     if reference is None:
         reference = pd.read_csv(REFERENCE_DIR / "reference_features.csv")
 
@@ -80,7 +80,7 @@ def statistical_drift_report(
 
 
 def current_features_from_prediction_log(path: str | Path) -> pd.DataFrame:
-    """Reconstruit un DataFrame de features à partir des snapshots stockés dans le log de prédictions (JSONL)."""
+    # Reconstruit un DataFrame de features à partir des snapshots stockés dans le log de prédictions (JSONL)
     rows = []
     p = Path(path)
     if not p.exists():
@@ -94,7 +94,7 @@ def current_features_from_prediction_log(path: str | Path) -> pd.DataFrame:
 
 
 def generate_evidently_report(current: pd.DataFrame, output_path: str | Path) -> Path | None:
-    """Génère un rapport HTML de drift via evidently, si la dépendance optionnelle est installée."""
+    # Génère un rapport HTML de drift via evidently, si la dépendance optionnelle est installée
     try:
         from evidently import Report
         from evidently.presets import DataDriftPreset
@@ -114,7 +114,7 @@ def generate_evidently_report(current: pd.DataFrame, output_path: str | Path) ->
 
 
 def main() -> None:
-    """CLI : calcule le rapport de drift statistique (et le rapport HTML evidently si possible)."""
+    # CLI : calcule le rapport de drift statistique (et le rapport HTML evidently si possible)
     p = argparse.ArgumentParser()
     p.add_argument("current", help="CSV de features ou fichier predictions.jsonl")
     p.add_argument("--jsonl", action="store_true")

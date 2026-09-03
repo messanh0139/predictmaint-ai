@@ -12,12 +12,7 @@ def split_by_engine_three_way(
     calibration_fraction: float = 0.15,
     random_state: int = RANDOM_STATE,
 ):
-    """Sépare les moteurs en TRAIN / CALIBRATION / VALIDATION avant transformations.
-
-    Le jeu calibration sert exclusivement au choix du seuil de décision. Le jeu
-    validation sert au choix du modèle/champion. Cela évite d'optimiser seuil et
-    modèle sur la même partition.
-    """
+    # Sépare les moteurs en TRAIN / CALIBRATION / VALIDATION avant transformations
     if train_fraction <= 0 or calibration_fraction <= 0 or train_fraction + calibration_fraction >= 1:
         raise ValueError("Fractions invalides")
     engines = np.array(sorted(df[ID_COL].unique()))
@@ -50,7 +45,7 @@ def split_by_engine_three_way(
 
 
 def split_by_engine(df: pd.DataFrame, validation_size: float = 0.20, random_state: int = RANDOM_STATE):
-    """Compatibilité : split 2-way par moteur pour tests/expériences simples."""
+    # Compatibilité : split 2-way par moteur pour tests/expériences simples
     engines = np.array(sorted(df[ID_COL].unique()))
     rng = np.random.default_rng(random_state)
     rng.shuffle(engines)
