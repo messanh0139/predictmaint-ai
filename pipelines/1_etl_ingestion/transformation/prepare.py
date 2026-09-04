@@ -64,7 +64,7 @@ def main() -> None:
 
     supplemental_rows = 0
     supplemental_path = Path(
-        os.getenv("SUPPLEMENTAL_FEATURES_PATH", "data/production/feedback_features.csv")
+        os.getenv("SUPPLEMENTAL_FEATURES_PATH", "storage/production/feedback_features.csv")
     )
     if os.getenv("INCLUDE_PRODUCTION_FEEDBACK", "0") == "1":
         supplemental = load_supplemental_features(supplemental_path, train_features.columns)

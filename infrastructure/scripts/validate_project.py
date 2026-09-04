@@ -34,15 +34,15 @@ def main() -> int:
     parser.add_argument("--output", default="reports/project_validation.json")
     args = parser.parse_args()
 
-    manifest = read_json("data/processed/split_manifest.json")
-    metadata = read_json("models/model_metadata.json")
-    optimization = read_json("models/optimization_report.json")
-    promotion = read_json("models/promotion_report.json")
-    quality_gate = read_json("models/quality_gate.json")
-    external = read_json("models/test_metrics.json")
-    registry = read_json("models/registry/index.json")
+    manifest = read_json("storage/processed/split_manifest.json")
+    metadata = read_json("storage/models/model_metadata.json")
+    optimization = read_json("storage/models/optimization_report.json")
+    promotion = read_json("storage/models/promotion_report.json")
+    quality_gate = read_json("storage/models/quality_gate.json")
+    external = read_json("storage/models/test_metrics.json")
+    registry = read_json("storage/models/registry/index.json")
 
-    model_path = ROOT / "models/model.joblib"
+    model_path = ROOT / "storage/models/model.joblib"
     registry_entry = next(
         (x for x in registry.get("versions", []) if x.get("version") == registry.get("champion")),
         None,
@@ -76,11 +76,11 @@ def main() -> int:
         "holdout_not_materialized_in_development": (
             isinstance(manifest.get("external_test"), dict)
             and manifest["external_test"].get("status") == "LOCKED_NOT_MATERIALIZED_IN_DEVELOPMENT_PIPELINE"
-            and not (ROOT / "data/processed/test_features.csv").exists()
+            and not (ROOT / "storage/processed/test_features.csv").exists()
         ),
         "holdout_loaded_only_at_evaluation": bool(external.get("holdout_loaded_only_at_evaluation")),
         "threshold_fitted_on_calibration": metadata.get("threshold_source") == "dedicated calibration engines",
-        "grafana_provisioning_present": (ROOT / "monitoring/grafana/provisioning/datasources/prometheus.yml").exists() and (ROOT / "monitoring/grafana/provisioning/dashboards/predictmaint.yml").exists(),
+        "grafana_provisioning_present": (ROOT / "infrastructure/monitoring/grafana/provisioning/datasources/prometheus.yml").exists() and (ROOT / "infrastructure/monitoring/grafana/provisioning/dashboards/predictmaint.yml").exists(),
     }
     if args.tests_passed is not None:
         checks["automated_tests_passed"] = args.tests_passed > 0

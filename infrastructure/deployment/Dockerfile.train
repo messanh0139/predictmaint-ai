@@ -3,10 +3,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 WORKDIR /app
-COPY pipelines/3_inference_ihm/api/requirements-api.txt ./requirements-api.txt
-COPY pipelines/2_training_mlops/requirements-train.txt ./requirements-train.txt
+COPY pipelines/3_inference_ihm/api/requirements-api.txt ./pipelines/3_inference_ihm/api/requirements-api.txt
+COPY pipelines/2_training_mlops/requirements-train.txt ./pipelines/2_training_mlops/requirements-train.txt
 COPY constraints-model.txt ./
-RUN pip install --no-cache-dir -r requirements-train.txt -c constraints-model.txt
+RUN pip install --no-cache-dir -r pipelines/2_training_mlops/requirements-train.txt -c constraints-model.txt
 COPY src ./src
 COPY storage/raw ./storage/raw
 RUN useradd --create-home --uid 10001 trainer && chown -R trainer:trainer /app

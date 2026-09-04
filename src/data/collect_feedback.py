@@ -104,7 +104,7 @@ def main() -> None:
     p.add_argument("--predictions", type=Path)
     p.add_argument("--feedback", type=Path)
     p.add_argument("--bucket")
-    p.add_argument("--output", type=Path, default=Path("data/production/feedback_features.csv"))
+    p.add_argument("--output", type=Path, default=Path("storage/production/feedback_features.csv"))
     args = p.parse_args()
 
     if args.bucket:

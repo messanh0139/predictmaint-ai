@@ -15,7 +15,7 @@ jobs:
       - run: pip install -r requirements.txt -c constraints-model.txt
       - name: Quality and leakage tests
         run: |
-          ruff check api src tests scripts
+          ruff check src infrastructure/tests infrastructure/scripts
           pytest -q
       - name: Reproduce the locked development pipeline
         run: |
@@ -26,14 +26,14 @@ jobs:
       - name: Consume external holdout explicitly
         run: python -m src.models.evaluate
       - name: Consolidate certification validation report
-        run: python scripts/validate_project.py
+        run: python infrastructure/scripts/validate_project.py
       - uses: actions/upload-artifact@v4
         with:
           name: certification-evidence-${{ github.sha }}
           path: |
-            models/test_metrics.json
-            models/test_predictions.csv
-            models/leaderboard.csv
-            models/model_metadata.json
-            data/processed/split_manifest.json
+            storage/models/test_metrics.json
+            storage/models/test_predictions.csv
+            storage/models/leaderboard.csv
+            storage/models/model_metadata.json
+            storage/processed/split_manifest.json
             reports/project_validation.json

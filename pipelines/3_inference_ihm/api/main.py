@@ -32,13 +32,13 @@ from src.data.collect_feedback import append_feature_dataset, build_uploaded_fea
 from src.features.build_features import build_causal_features
 from src.monitoring.drift import current_features_from_prediction_log, statistical_drift_report
 
-MODEL_PATH = Path(os.getenv("MODEL_PATH", "models/model.joblib"))
-METADATA_PATH = Path(os.getenv("MODEL_METADATA_PATH", "models/model_metadata.json"))
+MODEL_PATH = Path(os.getenv("MODEL_PATH", "storage/models/model.joblib"))
+METADATA_PATH = Path(os.getenv("MODEL_METADATA_PATH", "storage/models/model_metadata.json"))
 PREDICTION_LOG_PATH = Path(os.getenv("PREDICTION_LOG_PATH", "/tmp/predictions.jsonl"))
 FEEDBACK_LOG_PATH = Path(os.getenv("FEEDBACK_LOG_PATH", "/tmp/feedback.jsonl"))
 PREDICTION_BUCKET = os.getenv("PREDICTION_BUCKET")
 PRODUCTION_FEATURES_PATH = Path(
-    os.getenv("SUPPLEMENTAL_FEATURES_PATH", "data/production/feedback_features.csv")
+    os.getenv("SUPPLEMENTAL_FEATURES_PATH", "storage/production/feedback_features.csv")
 )
 
 logging.basicConfig(
