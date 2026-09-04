@@ -2,7 +2,7 @@
 
 Ce guide explique comment injecter de nouvelles données, monitorer les performances et déclencher le retraining automatique.
 
-## 🔄 Vue d'ensemble du flux
+## Vue d'ensemble du flux
 
 ```
 ┌─────────────────┐
@@ -47,7 +47,7 @@ Ce guide explique comment injecter de nouvelles données, monitorer les performa
 
 ---
 
-## 📡 1. Envoyer des nouvelles données de prédiction
+## 1. Envoyer des nouvelles données de prédiction
 
 ### Endpoint : `POST /predict`
 
@@ -114,7 +114,7 @@ Chaque fois qu'un moteur est en fonctionnement, vous envoyez l'historique comple
 }
 ```
 
-### ⚠️ Important
+### Important
 
 - L'`engine_id` est l'identifiant unique de votre moteur physique
 - L'`history` doit contenir **tous les cycles depuis le début** du moteur (ou sa dernière maintenance)
@@ -166,7 +166,7 @@ print(f"Probabilité de panne: {prediction['failure_probability']:.2%}")
 print(f"Risque: {prediction['risk']}")
 ```
 
-### 📊 Ce qui se passe automatiquement
+### Ce qui se passe automatiquement
 
 1. **Persistance locale** : `/tmp/predictions.jsonl` (pour monitoring)
 2. **Persistance GCS** : `gs://{PREDICTION_BUCKET}/predictions/{prediction_id}.json`
@@ -179,7 +179,7 @@ print(f"Risque: {prediction['risk']}")
 
 ---
 
-## ✅ 2. Soumettre la vérité terrain (feedback)
+## 2. Soumettre la vérité terrain (feedback)
 
 **Environ 30 jours après une prédiction**, vous savez si le moteur est réellement tombé en panne ou non.
 
@@ -222,7 +222,7 @@ response = requests.post(f"{API_URL}/feedback", headers=headers, json=feedback_d
 print(response.json())
 ```
 
-### 📊 Ce qui se passe automatiquement
+### Ce qui se passe automatiquement
 
 1. **Persistance locale** : `/tmp/feedback.jsonl`
 2. **Persistance GCS** : `gs://{PREDICTION_BUCKET}/feedback/{prediction_id}.json`
@@ -230,7 +230,7 @@ print(response.json())
 
 ---
 
-## 📊 3. Monitoring automatique de la dérive (Drift)
+## 3. Monitoring automatique de la dérive (Drift)
 
 L'API calcule **automatiquement toutes les 5 minutes** :
 
@@ -271,7 +271,7 @@ Grafana (déployé automatiquement) affiche :
 
 ---
 
-## 🔄 4. Déclencher le retraining automatique
+## 4. Déclencher le retraining automatique
 
 Il existe **2 méthodes** pour déclencher un retraining :
 
@@ -330,12 +330,12 @@ with open("nouvelles_donnees.csv", "rb") as f:
 
 Le retraining se fait **en arrière-plan** (thread daemon) :
 
-1. ✅ **Préparation** : `python -m src.data.prepare` (avec `INCLUDE_PRODUCTION_FEEDBACK=1`)
-2. ✅ **Sélection features** : `python -m src.features.select_features`
-3. ✅ **Entraînement** : `python -m src.models.train` (3+ modèles)
-4. ✅ **Quality gate** : `python -m src.models.quality_gate` (vérifie recall, PR-AUC)
-5. ✅ **Promotion** : `python -m src.models.register` (si meilleur que champion)
-6. ✅ **Reload** : Rechargement automatique du modèle en mémoire
+1. **Préparation** : `python -m src.data.prepare` (avec `INCLUDE_PRODUCTION_FEEDBACK=1`)
+2. **Sélection features** : `python -m src.features.select_features`
+3. **Entraînement** : `python -m src.models.train` (3+ modèles)
+4. **Quality gate** : `python -m src.models.quality_gate` (vérifie recall, PR-AUC)
+5. **Promotion** : `python -m src.models.register` (si meilleur que champion)
+6. **Reload** : Rechargement automatique du modèle en mémoire
 
 #### Suivre l'avancement
 
@@ -414,7 +414,7 @@ Le job est exécuté automatiquement par GitHub Actions :
 
 ---
 
-## 📈 5. Visualiser les performances en production
+## 5. Visualiser les performances en production
 
 ### Monitoring des performances réelles
 
@@ -466,7 +466,7 @@ def performance_report():
 
 ---
 
-## 🎯 Résumé : Flux complet bout-en-bout
+## Résumé : Flux complet bout-en-bout
 
 ### Semaine 1-4 : Collecte initiale
 
@@ -518,7 +518,7 @@ curl -X POST "${API_URL}/retrain/upload" -F "file=@data.csv"
 
 ---
 
-## ⚙️ Configuration des seuils
+## Configuration des seuils
 
 ### Variables d'environnement
 
@@ -551,7 +551,7 @@ Si un modèle ne passe pas ces seuils, le retraining échoue et le champion actu
 
 ---
 
-## 🚨 Alertes et notifications
+## Alertes et notifications
 
 ### Alertes Grafana configurées
 
@@ -570,7 +570,7 @@ Dans Grafana → Alerting → Contact points :
 
 ---
 
-## 📚 Commandes utiles
+## Commandes utiles
 
 ### Vérifier l'état de l'API
 
@@ -621,7 +621,7 @@ gcloud run jobs execute predictmaint-retrain \
 
 ---
 
-## 🎓 Bonnes pratiques
+## Bonnes pratiques
 
 ### 1. Stratégie de collecte de feedback
 
@@ -653,7 +653,7 @@ Chaque modèle est versionné avec :
 
 ---
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Le retraining échoue
 
@@ -689,6 +689,6 @@ gcloud projects get-iam-policy ${GCP_PROJECT_ID} \
 
 ---
 
-**Prêt à démarrer !** 🚀
+**Prêt à démarrer !**
 
 Suivez ce guide pour mettre en place le cycle complet de MLOps en production.
