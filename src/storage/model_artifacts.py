@@ -23,6 +23,12 @@ def upload_champion_to_gcs(model_path: Path, metadata_path: Path) -> dict:
         metadata_obj = f"models/{version}/metadata.json"
         bucket.blob(model_obj).upload_from_filename(str(model_path))
         bucket.blob(metadata_obj).upload_from_filename(str(metadata_path))
+
+        # Upload optionnel de test_metrics.json s'il existe
+        test_metrics_path = model_path.parent / "test_metrics.json"
+        if test_metrics_path.exists():
+            bucket.blob("models/test_metrics.json").upload_from_filename(str(test_metrics_path))
+
         # Pointeur global vers le dernier modèle validé : toujours écrasé (ce n'est pas un artefact versionné).
         bucket.blob("models/champion.json").upload_from_string(
             json.dumps(

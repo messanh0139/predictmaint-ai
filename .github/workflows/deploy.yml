@@ -108,6 +108,14 @@ jobs:
           test -s storage/models/model.joblib
           test -s storage/models/model_metadata.json
 
+          # Télécharger test_metrics.json s'il existe, sinon créer un fichier par défaut
+          if gcloud storage cp "gs://${MODEL_ARTIFACT_BUCKET}/models/test_metrics.json" storage/models/test_metrics.json 2>/dev/null; then
+            echo "test_metrics.json téléchargé depuis GCS"
+          else
+            echo "test_metrics.json non trouvé sur GCS, création d'un fichier par défaut"
+            echo '{"warning": "Métriques de test non disponibles"}' > storage/models/test_metrics.json
+          fi
+
       - name: Build and push service images
         shell: bash
         run: |
