@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-# PredictMaint AI : Maintenance Prédictive des Moteurs Turbofan
-=======
-# PredictMaint AI — Maintenance Prédictive MLOps
->>>>>>> 789a897 (mise à jour pipeline et docker)
+# PredictMaint AI : Maintenance Prédictive MLOps
 
 ## Architecture MLOps Professionnelle
 
