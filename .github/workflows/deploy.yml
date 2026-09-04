@@ -132,7 +132,8 @@ jobs:
             --platform managed \
             --service-account "${{ secrets.GCP_RUNTIME_SERVICE_ACCOUNT }}" \
             --set-env-vars "PREDICTION_BUCKET=${PREDICTION_BUCKET},LOG_LEVEL=INFO,GCP_REGION=${REGION}" \
-            --cpu 1 --memory 1Gi --concurrency 10 --timeout 60 --min 0 --max 5 \
+            --port 8080 \
+            --cpu 1 --memory 1Gi --concurrency 10 --timeout 300 --min 0 --max 5 \
             --no-cpu-throttling \
             --no-allow-unauthenticated \
             --quiet
@@ -194,7 +195,7 @@ jobs:
       - name: Deploy public presentation dashboard
         shell: bash
         run: |
-          ENV_VARS="REACT_APP_API_URL=${API_URL},PORT=80"
+          ENV_VARS="REACT_APP_API_URL=${API_URL}"
           [ -n "${MLFLOW_URL:-}" ] && ENV_VARS="${ENV_VARS},REACT_APP_MLFLOW_URL=${MLFLOW_URL}"
           [ -n "${GRAFANA_URL:-}" ] && ENV_VARS="${ENV_VARS},REACT_APP_GRAFANA_URL=${GRAFANA_URL}"
           gcloud run deploy "${DASHBOARD_SERVICE}" \
@@ -203,7 +204,7 @@ jobs:
             --platform managed \
             --service-account "${{ secrets.GCP_RUNTIME_SERVICE_ACCOUNT }}" \
             --set-env-vars "${ENV_VARS}" \
-            --port 80 \
+            --port 8080 \
             --cpu 1 --memory 512Mi --concurrency 50 --timeout 300 --min 0 --max 3 \
             --allow-unauthenticated \
             --quiet

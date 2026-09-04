@@ -24,8 +24,8 @@ COPY storage/raw/test_FD001.txt /usr/share/nginx/html/data/raw/test_FD001.txt
 COPY storage/models/model_metadata.json /usr/share/nginx/html/models/model_metadata.json
 COPY storage/models/test_metrics.json /usr/share/nginx/html/models/test_metrics.json
 
-# Variable d'environnement pour le port (Cloud Run peut utiliser PORT=8080)
-ENV PORT=80
+# Variable d'environnement pour le port (Cloud Run injecte PORT=8080)
+ENV PORT=8080
 
 # Créer un script d'entrée qui génère la config nginx et injecte les variables runtime
 RUN echo '#!/bin/sh\n\
@@ -77,9 +77,8 @@ echo "Grafana URL: ${REACT_APP_GRAFANA_URL:-not set}"\n\
 exec nginx -g "daemon off;"\n\
 ' > /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
 
-EXPOSE ${PORT}
+EXPOSE 8080
 
-HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget --quiet --tries=1 --spider http://localhost:${PORT}/ || exit 1
+# Note: Cloud Run gère ses propres health checks et ignore les HEALTHCHECK du Dockerfile
 
 CMD ["/docker-entrypoint.sh"]

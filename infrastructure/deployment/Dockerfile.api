@@ -20,11 +20,9 @@ COPY storage/ ./storage/
 ENV PORT=8080
 
 # Exposition du port
-EXPOSE ${PORT}
+EXPOSE 8080
 
-# Healthcheck dynamique basé sur la variable PORT
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:${PORT}/health || exit 1
+# Note: Cloud Run gère ses propres health checks et ignore les HEALTHCHECK du Dockerfile
 
-# Commande de démarrage avec port dynamique
-CMD uvicorn api.main:app --host 0.0.0.0 --port ${PORT}
+# Commande de démarrage avec port dynamique (forme shell pour substitution de variable)
+CMD sh -c "uvicorn api.main:app --host 0.0.0.0 --port ${PORT}"
