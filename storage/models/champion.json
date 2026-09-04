@@ -1,0 +1,17 @@
+{
+  "model_version": "optimized-302137b8230f",
+  "model_name": "xgboost_optimized",
+  "model_path": "models/registry/optimized-302137b8230f/model.joblib",
+  "metadata_path": "models/registry/optimized-302137b8230f/metadata.json",
+  "promoted_at_utc": "2026-09-04T14:30:00+00:00",
+  "promoted_reason": "Best overall performance: Recall=100%, PR-AUC=94.6%, 0 false negatives, lowest business cost",
+  "validation_metrics": {
+    "recall": 1.0,
+    "pr_auc": 0.9459492868527207,
+    "precision": 0.5636363636363636,
+    "roc_auc": 0.9881335666737,
+    "f1": 0.7209302325581395,
+    "fn": 0,
+    "business_cost": 180000.0
+  }
+}

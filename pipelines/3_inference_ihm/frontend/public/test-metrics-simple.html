@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Métriques</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #0a1929;
+            color: white;
+        }
+        .metric {
+            background: #1e3a5f;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        .error {
+            background: #d32f2f;
+            padding: 15px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test de Chargement des Métriques</h1>
+    <div id="status">Chargement...</div>
+    <div id="metrics"></div>
+
+    <script>
+        async function testMetrics() {
+            const statusDiv = document.getElementById('status');
+            const metricsDiv = document.getElementById('metrics');
+
+            try {
+                // Test 1: Charger test_metrics.json
+                const response = await fetch('/models/test_metrics.json');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                statusDiv.innerHTML = '<div class="metric">✅ Données chargées avec succès !</div>';
+
+                metricsDiv.innerHTML = `
+                    <div class="metric">
+                        <h3>Recall</h3>
+                        <p style="font-size: 2em; margin: 0;">${(data.recall * 100).toFixed(1)}%</p>
+                    </div>
+                    <div class="metric">
+                        <h3>PR-AUC</h3>
+                        <p style="font-size: 2em; margin: 0;">${data.pr_auc.toFixed(3)}</p>
+                    </div>
+                    <div class="metric">
+                        <h3>Precision</h3>
+                        <p style="font-size: 2em; margin: 0;">${(data.precision * 100).toFixed(1)}%</p>
+                    </div>
+                    <div class="metric">
+                        <h3>ROC-AUC</h3>
+                        <p style="font-size: 2em; margin: 0;">${data.roc_auc.toFixed(3)}</p>
+                    </div>
+                    <div class="metric">
+                        <h3>F1-Score</h3>
+                        <p style="font-size: 2em; margin: 0;">${data.f1.toFixed(3)}</p>
+                    </div>
+                    <div class="metric">
+                        <h3>Matrice de Confusion</h3>
+                        <p>Vrais Négatifs: ${data.tn}</p>
+                        <p>Faux Positifs: ${data.fp}</p>
+                        <p>Faux Négatifs: ${data.fn}</p>
+                        <p>Vrais Positifs: ${data.tp}</p>
+                    </div>
+                    <div class="metric">
+                        <h3>Données Complètes (JSON)</h3>
+                        <pre style="overflow: auto; font-size: 0.8em;">${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="error">❌ Erreur: ${error.message}</div>`;
+                console.error('Erreur détaillée:', error);
+            }
+        }
+
+        // Lancer le test au chargement
+        testMetrics();
+    </script>
+</body>
+</html>

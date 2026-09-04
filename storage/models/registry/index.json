@@ -1,5 +1,5 @@
 {
-  "champion": "optimized-302137b8230f",
+  "champion": "baseline-e3c7a53e273b",
   "versions": [
     {
       "version": "optimized-b623fc94786a",
@@ -82,6 +82,36 @@
       },
       "artifact": "models/registry/optimized-302137b8230f/model.joblib",
       "metadata": "models/registry/optimized-302137b8230f/metadata.json"
+    },
+    {
+      "version": "baseline-e3c7a53e273b",
+      "model_name": "random_forest",
+      "model_sha256": "3a6ce8176804ff11c628e68660cf88af4151f82f57828d28e7ca3998bd2b4170",
+      "dataset_manifest_sha256": "1dda7cb24c5077e03479fb00671a09c2fdad45b7fc563e60846e3ac7e1d11d79",
+      "validation_metrics": {
+        "name": "random_forest",
+        "threshold_source": "dedicated calibration engines",
+        "calibration_pr_auc": 0.9515553706205455,
+        "calibration_recall": 0.9978494623655914,
+        "threshold": 0.08,
+        "precision": 0.5569155446756426,
+        "recall": 0.978494623655914,
+        "specificity": 0.8607156598691804,
+        "balanced_accuracy": 0.9196051417625473,
+        "f1": 0.7098283931357254,
+        "mcc": 0.6809070780413565,
+        "roc_auc": 0.9834187673505527,
+        "pr_auc": 0.9248772005307642,
+        "brier": 0.035012354271454646,
+        "tn": 2237,
+        "fp": 362,
+        "fn": 10,
+        "tp": 455,
+        "business_cost": 281000.0,
+        "business_cost_per_1000": 91710.18276762402
+      },
+      "artifact": "models/registry/baseline-e3c7a53e273b/model.joblib",
+      "metadata": "models/registry/baseline-e3c7a53e273b/metadata.json"
     }
   ]
 }
