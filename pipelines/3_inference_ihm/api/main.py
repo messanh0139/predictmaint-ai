@@ -34,22 +34,44 @@ from src.features.build_features import build_causal_features
 from src.monitoring.drift import current_features_from_prediction_log, statistical_drift_report
 
 # Racine du projet pour exécuter les commandes depuis le bon répertoire
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+# Permet de définir explicitement via variable d'environnement, sinon détection automatique
+if "PROJECT_ROOT" in os.environ:
+    PROJECT_ROOT = Path(os.environ["PROJECT_ROOT"])
+else:
+    # Détection automatique: chercher le répertoire contenant 'src' et 'storage'
+    current = Path(__file__).resolve()
+    for parent in [current.parent.parent, current.parent.parent.parent, current.parent.parent.parent.parent]:
+        if (parent / "src").is_dir() or (parent / "api").is_dir():
+            PROJECT_ROOT = parent
+            break
+    else:
+        # Fallback: remonter 4 niveaux (structure locale)
+        PROJECT_ROOT = current.parent.parent.parent.parent
 
-MODEL_PATH = PROJECT_ROOT / Path(os.getenv("MODEL_PATH", "storage/models/model.joblib"))
-METADATA_PATH = PROJECT_ROOT / Path(os.getenv("MODEL_METADATA_PATH", "storage/models/model_metadata.json"))
+# Fonction pour résoudre les chemins (absolus ou relatifs à PROJECT_ROOT)
+def _resolve_path(env_var: str, default: str) -> Path:
+    path_str = os.getenv(env_var, default)
+    path = Path(path_str)
+    if path.is_absolute():
+        return path
+    return PROJECT_ROOT / path
+
+MODEL_PATH = _resolve_path("MODEL_PATH", "storage/models/model.joblib")
+METADATA_PATH = _resolve_path("MODEL_METADATA_PATH", "storage/models/model_metadata.json")
 PREDICTION_LOG_PATH = Path(os.getenv("PREDICTION_LOG_PATH", "/tmp/predictions.jsonl"))
 FEEDBACK_LOG_PATH = Path(os.getenv("FEEDBACK_LOG_PATH", "/tmp/feedback.jsonl"))
 PREDICTION_BUCKET = os.getenv("PREDICTION_BUCKET")
-PRODUCTION_FEATURES_PATH = PROJECT_ROOT / Path(
-    os.getenv("SUPPLEMENTAL_FEATURES_PATH", "storage/production/feedback_features.csv")
-)
+PRODUCTION_FEATURES_PATH = _resolve_path("SUPPLEMENTAL_FEATURES_PATH", "storage/production/feedback_features.csv")
 
 # Configuration MLflow pour le retrain via API
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "sqlite:///storage/mlflow.db")
 os.environ.setdefault("MLFLOW_TRACKING_URI", MLFLOW_TRACKING_URI)
-if MLFLOW_TRACKING_URI.startswith("sqlite:"):
-    db_path = Path(MLFLOW_TRACKING_URI.replace("sqlite:///", ""))
+if MLFLOW_TRACKING_URI.startswith("sqlite:///"):
+    # Résoudre les chemins SQLite relatifs par rapport à PROJECT_ROOT
+    db_path_str = MLFLOW_TRACKING_URI.replace("sqlite:///", "")
+    db_path = Path(db_path_str)
+    if not db_path.is_absolute():
+        db_path = PROJECT_ROOT / db_path
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
 logging.basicConfig(
