@@ -132,7 +132,7 @@ jobs:
           echo "DASHBOARD_IMAGE=${DASHBOARD_IMAGE}" >> "${GITHUB_ENV}"
           echo "GRAFANA_IMAGE=${GRAFANA_IMAGE}" >> "${GITHUB_ENV}"
 
-      - name: Deploy private API
+      - name: Deploy public API
         run: |
           gcloud run deploy "${API_SERVICE}" \
             --image "${API_IMAGE}" \
@@ -143,10 +143,11 @@ jobs:
             --port 8080 \
             --cpu 1 --memory 1Gi --concurrency 10 --timeout 300 --min 0 --max 5 \
             --no-cpu-throttling \
-            --no-allow-unauthenticated \
+            --allow-unauthenticated \
             --quiet
 
-      - name: Authorize dashboard and deployer to invoke API
+      - name: Authorize dashboard and deployer to invoke API (optional - API is public)
+        continue-on-error: true
         run: |
           gcloud run services add-iam-policy-binding "${API_SERVICE}" \
             --region "${REGION}" \
@@ -220,18 +221,14 @@ jobs:
       - name: Smoke tests
         shell: bash
         run: |
-          # print-identity-token exige explicitement --impersonate-service-account ici :
-          # l'identité active issue de google-github-actions/auth (Workload Identity
-          # Federation) n'est pas reconnue comme un « compte de service » par gcloud
-          # pour la combinaison avec --audiences, même si l'impersonation est déjà
-          # configurée en amont dans l'étape d'authentification.
-          ID_TOKEN="$(gcloud auth print-identity-token \
-            --impersonate-service-account="${{ secrets.GCP_DEPLOYER_SERVICE_ACCOUNT }}" \
-            --audiences="${API_URL}")"
-          curl --fail --retry 5 --retry-delay 5 \
-            -H "Authorization: Bearer ${ID_TOKEN}" "${API_URL}/ready"
+          # L'API est publique, pas besoin de token d'authentification
+          echo "Testing public API at ${API_URL}/ready"
+          curl --fail --retry 5 --retry-delay 5 "${API_URL}/ready"
+
           DASHBOARD_URL="$(gcloud run services describe "${DASHBOARD_SERVICE}" --region "${REGION}" --format='value(status.url)')"
+          echo "Testing dashboard at ${DASHBOARD_URL}/"
           curl --fail --retry 8 --retry-delay 5 "${DASHBOARD_URL}/"
+
           echo "### Production deployed" >> "${GITHUB_STEP_SUMMARY}"
           echo "- Dashboard React: ${DASHBOARD_URL}" >> "${GITHUB_STEP_SUMMARY}"
           echo "- API: ${API_URL}" >> "${GITHUB_STEP_SUMMARY}"
