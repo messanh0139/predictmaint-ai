@@ -1,6 +1,15 @@
+import importlib.util
+import sys
+from pathlib import Path
+
 from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
 
-import api.cloud_monitoring as cm
+# Chargement du module de monitoring Cloud
+cm_path = Path(__file__).resolve().parents[2] / "pipelines" / "3_inference_ihm" / "api" / "cloud_monitoring.py"
+spec = importlib.util.spec_from_file_location("api.cloud_monitoring", cm_path)
+cm = importlib.util.module_from_spec(spec)
+sys.modules["api.cloud_monitoring"] = cm
+spec.loader.exec_module(cm)
 
 
 def _fresh_metrics():

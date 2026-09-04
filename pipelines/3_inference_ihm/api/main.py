@@ -20,7 +20,14 @@ from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, ge
 from pydantic import BaseModel, Field, model_validator
 from starlette.responses import Response
 
-import api.cloud_monitoring as cloud_monitoring
+try:
+    from . import cloud_monitoring
+except ImportError:
+    # Chargement alternatif pour les tests
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).parent))
+    import cloud_monitoring
 from src.data.collect_feedback import append_feature_dataset, build_uploaded_feature_dataset
 from src.features.build_features import build_causal_features
 from src.monitoring.drift import current_features_from_prediction_log, statistical_drift_report

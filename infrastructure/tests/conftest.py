@@ -1,8 +1,8 @@
-# Configuration partagée par tous les tests : garantit que le package `src`
-# est importable, même si pytest est lancé depuis un autre répertoire.
+# Configuration commune des tests
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+# Ajoute la racine du projet au chemin Python
+ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))

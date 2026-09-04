@@ -1,11 +1,19 @@
+import importlib.util
+import sys
 import threading
 import time
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from fastapi.testclient import TestClient
 
-import api.main as api
+# Chargement de l'API depuis son nouveau emplacement
+api_path = Path(__file__).resolve().parents[2] / "pipelines" / "3_inference_ihm" / "api" / "main.py"
+spec = importlib.util.spec_from_file_location("api.main", api_path)
+api = importlib.util.module_from_spec(spec)
+sys.modules["api.main"] = api
+spec.loader.exec_module(api)
 
 
 class DummyModel:
