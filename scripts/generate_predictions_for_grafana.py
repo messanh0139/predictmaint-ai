@@ -7,7 +7,6 @@ import requests
 import random
 import time
 import argparse
-from datetime import datetime
 
 # Valeurs normales (référence)
 BASELINE_VALUES = {
@@ -100,7 +99,7 @@ def main():
     for i in range(args.num):
         engine_id = 5000 + i
 
-        # Drift progressif : 0% → 30%
+        # Drift progressif de 0% à 30%
         progress = i / args.num
         drift_factor = progress * 0.30
 

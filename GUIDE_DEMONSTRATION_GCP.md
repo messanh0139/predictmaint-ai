@@ -227,7 +227,7 @@ for i in range(50):
 
     time.sleep(1)  # 1 seconde entre chaque requête
 
-print("\n✅ Terminé ! Attendez 5 minutes puis vérifiez Grafana.")
+print("\nTerminé. Attendez 5 minutes puis vérifiez Grafana.")
 ```
 
 Exécutez :
@@ -289,7 +289,7 @@ custom.googleapis.com/predictmaint/drift_psi
 
 ### Créer un Dashboard Cloud Monitoring
 
-1. **Monitoring** → **Dashboards** → **Create Dashboard**
+1. Aller dans **Monitoring** puis **Dashboards** puis **Create Dashboard**
 2. Ajouter des graphiques :
    - **Prédictions Totales** : `custom.googleapis.com/predictmaint/predictions_total`
    - **Drift Global** : `custom.googleapis.com/predictmaint/drift_share`
@@ -375,8 +375,8 @@ gcloud run jobs execute predictmaint-retrain --region europe-west1 --wait
 ```
 
 #### 7. Voir le Nouveau Modèle Déployé
-- GitHub Actions Summary → Nouveau model_version
-- Dashboard → Modèle champion mis à jour
+- Dans GitHub Actions Summary, vérifier le nouveau model_version
+- Dans le Dashboard, vérifier que le modèle champion est mis à jour
 
 ---
 
@@ -431,7 +431,7 @@ cat abc123-def456.json | jq
 
 ### Avant la Soutenance
 
-- [ ] Vérifier que tous les services sont déployés (✅ vert sur GitHub Actions)
+- [ ] Vérifier que tous les services sont déployés (vert sur GitHub Actions)
 - [ ] Récupérer toutes les URLs publiques
 - [ ] Tester le dashboard en navigation privée
 - [ ] Récupérer le mot de passe Grafana
@@ -442,7 +442,7 @@ cat abc123-def456.json | jq
 ### Pendant la Soutenance
 
 **Slide 1 : Architecture Production**
-- Montrer le schéma GitHub Actions → Cloud Run
+- Montrer le schéma GitHub Actions vers Cloud Run
 
 **Slide 2 : URLs Publiques** (cliquables)
 ```
@@ -452,9 +452,9 @@ Grafana   : https://predictmaint-grafana-xxx.run.app
 ```
 
 **Slide 3 : Démonstration Live**
-1. Ouvrir Dashboard → Faire une prédiction
-2. Ouvrir Grafana → Montrer drift PSI
-3. Ouvrir Cloud Monitoring → Montrer métriques custom
+1. Ouvrir Dashboard et faire une prédiction
+2. Ouvrir Grafana et montrer drift PSI
+3. Ouvrir Cloud Monitoring et montrer métriques custom
 
 **Slide 4 : GitHub Actions**
 - Montrer l'historique des déploiements

@@ -108,7 +108,7 @@ Centraliser la collecte des données brutes, garantir la traçabilité de l'hist
 
 **Workflow** :
 ```
-extract_raw_data → transform_clean_data → load_to_postgresql → validate_pipeline
+extract_raw_data puis transform_clean_data puis load_to_postgresql puis validate_pipeline
 ```
 
 ---
@@ -163,9 +163,9 @@ Enregistrement dans **MLflow** :
 
 **Workflow** :
 ```
-wait_for_pipeline_1 → extract_from_postgresql → train_multiple_models
-  → optimize_hyperparameters → evaluate_select_champion
-  → [register_model_to_gcp, track_with_mlflow] → validate_pipeline
+wait_for_pipeline_1 puis extract_from_postgresql puis train_multiple_models
+  puis optimize_hyperparameters puis evaluate_select_champion
+  puis [register_model_to_gcp, track_with_mlflow] puis validate_pipeline
 ```
 
 ---
@@ -211,7 +211,7 @@ Exposer le modèle de Machine Learning sous forme de service web et offrir un ou
 ### Orchestration globale
 
 **Apache Airflow** pilote l'enchaînement séquentiel et conditionnel des DAGs :
-- Pipeline 1 (ETL) → Pipeline 2 (MLOps)
+- Pipeline 1 (ETL) puis Pipeline 2 (MLOps)
 - Gestion des erreurs
 - Alertes automatiques
 - Relances automatiques
@@ -291,7 +291,7 @@ Orchestration des services :
 ```
 1. Sources externes
      ↓
-2. Extraction → MongoDB/Data Lake (brut)
+2. Extraction vers MongoDB/Data Lake (brut)
      ↓
 3. Transformation Python (orchestrée par Airflow)
      ↓

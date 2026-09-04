@@ -15,26 +15,26 @@ Environnement local pour le développement, les tests et la démonstration des c
 │         Docker Compose Local             │
 ├─────────────────────────────────────────┤
 │ • Apache Airflow (port 8080)            │
-│   → Orchestration DAGs                   │
-│   → Interface web locale                 │
+│   Orchestration DAGs                     │
+│   Interface web locale                   │
 │                                          │
 │ • PostgreSQL (port 5432)                │
-│   → Stockage données propres             │
+│   Stockage données propres               │
 │                                          │
 │ • MongoDB (port 27017)                   │
-│   → Stockage données brutes              │
+│   Stockage données brutes                │
 │                                          │
 │ • MLflow (port 5000)                     │
-│   → Tracking expérimentations            │
+│   Tracking expérimentations              │
 │                                          │
 │ • API FastAPI (port 8000)                │
-│   → Tests d'inférence locaux             │
+│   Tests d'inférence locaux               │
 │                                          │
 │ • Dashboard React (port 3000)            │
-│   → Développement frontend               │
+│   Développement frontend                 │
 │                                          │
 │ • Prometheus + Grafana                   │
-│   → Monitoring local                     │
+│   Monitoring local                       │
 └─────────────────────────────────────────┘
 ```
 
@@ -208,7 +208,7 @@ jobs:
    http://localhost:8080
    ↓
 4. Déclenche DAG manuellement
-   Pipeline 1 (ETL) → Pipeline 2 (MLOps)
+   Pipeline 1 (ETL) puis Pipeline 2 (MLOps)
    ↓
 5. Vérifie MLflow local
    http://localhost:5000
@@ -257,7 +257,7 @@ jobs:
 
 **Pour montrer la compréhension des concepts MLOps** :
 1. Présenter les DAGs Airflow (captures d'écran)
-2. Expliquer l'orchestration Pipeline 1 → Pipeline 2
+2. Expliquer l'orchestration Pipeline 1 puis Pipeline 2
 3. Montrer MLflow local (comparaison modèles)
 
 **Slides mémoire** :
@@ -293,7 +293,7 @@ jobs:
 
 ---
 
-## Migration Airflow → Cloud Scheduler (Optionnel)
+## Migration Airflow vers Cloud Scheduler (Optionnel)
 
 Si vous voulez aller plus loin, vous pouvez ajouter **Cloud Scheduler** pour planifier le retraining hebdomadaire :
 
@@ -332,17 +332,17 @@ Cela remplace complètement le `@weekly` d'Airflow par une solution cloud-native
 
 ### Avantages de cette Approche
 
-✅ **Montre votre expertise technique** (Airflow, DAGs, orchestration)
-✅ **Démontre votre pragmatisme** (choisir la bonne techno selon le contexte)
-✅ **Fournit une démo production réelle** (URLs publiques)
-✅ **Respecte les contraintes budgétaires** (serverless économique)
-✅ **Prouve votre compréhension MLOps** (dev vs prod)
+- **Montre votre expertise technique** (Airflow, DAGs, orchestration)
+- **Démontre votre pragmatisme** (choisir la bonne techno selon le contexte)
+- **Fournit une démo production réelle** (URLs publiques)
+- **Respecte les contraintes budgétaires** (serverless économique)
+- **Prouve votre compréhension MLOps** (dev vs prod)
 
 ---
 
 ## Résumé : Ce qui est Professionnel
 
-| Composant | ❌ Non Professionnel | ✅ Professionnel |
+| Composant | Non Professionnel | Professionnel |
 |-----------|---------------------|------------------|
 | **Orchestration** | Airflow uniquement local | Airflow (dev) + GitHub Actions (prod) |
 | **Démo** | Screenshots uniquement | URLs publiques cliquables |

@@ -214,7 +214,7 @@ response = requests.post(
 
 if response.status_code == 200:
     prediction = response.json()
-    print(f"   ✅ Prédiction réussie !")
+    print(f"   Prédiction réussie")
     print(f"   Prediction ID: {prediction['prediction_id']}")
     print(f"   Engine ID: {prediction['engine_id']}")
     print(f"   Probabilité de panne: {prediction['failure_probability']:.2%}")
@@ -247,10 +247,10 @@ if prediction_id:
     )
 
     if response.status_code == 200:
-        print(f"   ✅ Feedback enregistré !")
+        print(f"   Feedback enregistré")
         print(f"   {response.json()}")
     else:
-        print(f"   ❌ Erreur: {response.status_code}")
+        print(f"   Erreur: {response.status_code}")
 
 print()
 print("Tests terminés !")
@@ -292,8 +292,8 @@ while True:
             print(f"  Drift global: {drift:.1%}")
 
             if drift > 0.30:
-                print("  ⚠️  ALERTE: Drift élevé > 30% !")
-                print("  → Retraining recommandé")
+                print("  Attention: Drift élevé > 30%")
+                print("  Retraining recommandé")
 
     # Attendre 5 minutes
     time.sleep(300)

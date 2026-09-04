@@ -36,7 +36,7 @@ predictmaint-ai/
 │
 ├── orchestration/                       # Orchestration globale
 │   └── airflow/
-│       ├── dags/                        # DAGs Airflow (Pipeline 1 → 2)
+│       ├── dags/                        # DAGs Airflow (Pipeline 1 vers 2)
 │       ├── plugins/                     # Plugins personnalisés
 │       └── config/                      # Configuration Airflow
 │
@@ -117,7 +117,7 @@ predictmaint-ai/
 ### Orchestration globale
 
 **Apache Airflow** (`orchestration/airflow/`) pilote l'enchaînement séquentiel et conditionnel des DAGs:
-- Pipeline 1 (ETL) → Pipeline 2 (MLOps)
+- Pipeline 1 (ETL) puis Pipeline 2 (MLOps)
 - Gestion des erreurs, alertes et relances automatiques
 
 ### Monitoring des conteneurs
