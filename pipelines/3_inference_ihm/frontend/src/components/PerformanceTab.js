@@ -3,11 +3,15 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 const PerformanceTab = ({ testMetrics }) => {
   const formatPercent = (value) => {
-    return value ? `${(value * 100).toFixed(1)}%` : '—';
+    return (typeof value === 'number' && !isNaN(value))
+      ? `${(value * 100).toFixed(1)}%`
+      : '—';
   };
 
   const formatNumber = (value) => {
-    return value ? value.toFixed(3) : '—';
+    return (typeof value === 'number' && !isNaN(value))
+      ? value.toFixed(3)
+      : '—';
   };
 
   const confusionData = [

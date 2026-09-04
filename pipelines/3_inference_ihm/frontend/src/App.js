@@ -40,9 +40,10 @@ const App = () => {
     const fetchMetadata = async () => {
       try {
         const response = await axios.get(METADATA_PATH);
+        console.log('Métadonnées chargées:', response.data);
         setMetadata(response.data || {});
       } catch (error) {
-        console.log('Métadonnées non disponibles');
+        console.error('Erreur chargement métadonnées:', error.message);
       }
     };
 
@@ -50,9 +51,10 @@ const App = () => {
     const fetchTestMetrics = async () => {
       try {
         const response = await axios.get(METRICS_PATH);
+        console.log('Métriques de test chargées:', response.data);
         setTestMetrics(response.data || {});
       } catch (error) {
-        console.log('Métriques de test non disponibles');
+        console.error('Erreur chargement métriques de test:', error.message);
       }
     };
 
@@ -69,9 +71,10 @@ const App = () => {
           });
           return row;
         });
+        console.log(`Données de démo chargées: ${parsedData.length} lignes`);
         setDemoData(parsedData);
       } catch (error) {
-        console.log('Données de démonstration non disponibles');
+        console.error('Erreur chargement données de démo:', error.message);
       }
     };
 
