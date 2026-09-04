@@ -1,0 +1,43 @@
+{
+  "threshold": 0.002844517994672067,
+  "precision": 0.32113821138211385,
+  "recall": 0.9518072289156626,
+  "specificity": 0.9476653086806643,
+  "balanced_accuracy": 0.9497362687981634,
+  "f1": 0.48024316109422494,
+  "mcc": 0.5363457794410529,
+  "roc_auc": 0.9895026675174532,
+  "pr_auc": 0.7674797246109482,
+  "brier": 0.012266476569588371,
+  "tn": 12096,
+  "fp": 668,
+  "fn": 16,
+  "tp": 316,
+  "business_cost": 494000.0,
+  "business_cost_per_1000": 37721.44166157605,
+  "evaluated_at_utc": "2026-08-29T01:07:43.414474+00:00",
+  "model_name": "xgboost_optimized",
+  "model_version": "optimized-302137b8230f",
+  "dataset": "FD001 external holdout",
+  "locked_external_holdout": true,
+  "holdout_loaded_only_at_evaluation": true,
+  "raw_test_quality": {
+    "rows": 13096,
+    "columns": 26,
+    "engines": 100,
+    "missing_columns": [],
+    "extra_columns": [],
+    "duplicated_engine_cycle_keys": 0,
+    "total_null_values": 0,
+    "non_finite_numeric_values": 0,
+    "non_monotonic_engines": 0,
+    "invalid_engine_ids": 0,
+    "invalid_cycles": 0
+  },
+  "rul_alignment": {
+    "test_engines": 100,
+    "rul_rows": 100,
+    "aligned": true
+  },
+  "warning": "Do not use these metrics to iteratively tune the model."
+}
