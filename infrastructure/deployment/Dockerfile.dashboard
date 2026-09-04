@@ -17,12 +17,8 @@ RUN npm run build
 FROM nginx:alpine
 
 # Copier les fichiers buildés depuis le stage précédent
+# Cela inclut automatiquement public/models/*.json et public/data/*.txt
 COPY --from=build /app/build /usr/share/nginx/html
-
-# Copier les données et métadonnées nécessaires
-COPY storage/raw/test_FD001.txt /usr/share/nginx/html/data/raw/test_FD001.txt
-COPY storage/models/model_metadata.json /usr/share/nginx/html/models/model_metadata.json
-COPY storage/models/test_metrics.json /usr/share/nginx/html/models/test_metrics.json
 
 # Variable d'environnement pour le port (Cloud Run injecte PORT=8080)
 ENV PORT=8080
