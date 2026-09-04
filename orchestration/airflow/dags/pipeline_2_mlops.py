@@ -13,10 +13,7 @@ from airflow.sensors.external_task import ExternalTaskSensor
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from pipelines.2_training_mlops.experimentation.evaluate import main as evaluate_pipeline
-from pipelines.2_training_mlops.experimentation.train import build_candidates, main as train_pipeline
-from pipelines.2_training_mlops.optimization.optimize import main as optimize_pipeline
-from pipelines.2_training_mlops.registry.model_artifacts import upload_champion_to_gcs
+from src.pipelines.retrain import main as retrain_pipeline
 
 default_args = {
     'owner': 'ml-team',
@@ -45,36 +42,27 @@ def extract_from_postgresql(**context):
     return {"status": "extracted"}
 
 
-def train_multiple_models(**context):
-    # Entraîner plusieurs modèles
-    print("Entraînement des modèles")
-    train_pipeline()
-    print("Modèles entraînés")
-    return {"status": "completed"}
+def run_complete_retrain(**context):
+    # Pipeline complet de réentraînement avec optimisation (modernisé)
+    import os
+    print("Démarrage du pipeline complet avec optimisation")
 
+    # Configuration environnement
+    os.environ['INCLUDE_PRODUCTION_FEEDBACK'] = os.getenv('INCLUDE_PRODUCTION_FEEDBACK', '1')
+    os.environ['MLFLOW_TRACKING_URI'] = os.getenv('MLFLOW_TRACKING_URI', 'sqlite:///storage/mlflow.db')
 
-def optimize_hyperparameters(**context):
-    # Optimiser les hyperparamètres
-    print("Optimisation des hyperparamètres")
-    optimize_pipeline(n_trials=30)
-    print("Optimisation terminée")
-    return {"status": "completed"}
+    # Exécution pipeline unifié avec optimisation (30 trials Optuna)
+    retrain_pipeline(optimize=True, trials=30)
 
-
-def evaluate_and_select_champion(**context):
-    # Évaluer et sélectionner le meilleur modèle
-    print("Évaluation des modèles")
-    evaluate_pipeline()
-    print("Champion sélectionné")
-    return {"status": "completed"}
+    print("Pipeline complet terminé avec succès")
+    return {"status": "completed", "optimize": True, "trials": 30}
 
 
 def register_to_gcp(**context):
-    # Enregistrer le modèle dans GCP
-    print("Upload vers GCP")
-    gcp_path = upload_champion_to_gcs()
-    print(f"Enregistré: {gcp_path}")
-    return {"gcp_path": gcp_path}
+    # Enregistrer le modèle dans GCP (déjà fait par src.models.register dans le pipeline)
+    print("Enregistrement GCP déjà effectué par pipeline retrain")
+    print("Le champion a été uploadé vers GCS par src.models.register")
+    return {"status": "completed"}
 
 
 def track_with_mlflow(**context):
@@ -99,21 +87,9 @@ task_extract = PythonOperator(
     dag=dag,
 )
 
-task_train = PythonOperator(
-    task_id='train_multiple_models',
-    python_callable=train_multiple_models,
-    dag=dag,
-)
-
-task_optimize = PythonOperator(
-    task_id='optimize_hyperparameters',
-    python_callable=optimize_hyperparameters,
-    dag=dag,
-)
-
-task_evaluate = PythonOperator(
-    task_id='evaluate_select_champion',
-    python_callable=evaluate_and_select_champion,
+task_retrain = PythonOperator(
+    task_id='run_complete_retrain',
+    python_callable=run_complete_retrain,
     dag=dag,
 )
 
@@ -135,4 +111,4 @@ task_validate = BashOperator(
     dag=dag,
 )
 
-wait_for_pipeline_1 >> task_extract >> task_train >> task_optimize >> task_evaluate >> [task_register, task_mlflow] >> task_validate
+wait_for_pipeline_1 >> task_extract >> task_retrain >> [task_register, task_mlflow] >> task_validate

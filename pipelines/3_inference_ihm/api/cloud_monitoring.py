@@ -176,4 +176,14 @@ def flush(
     try:
         client.create_time_series(name=f"projects/{_project_id}", time_series=series)
     except Exception:
+        # Incrémenter le compteur d'erreurs Prometheus si disponible
+        try:
+            # Import dynamique pour éviter dépendance circulaire
+            import sys
+            if 'pipelines.3_inference_ihm.api.main' in sys.modules:
+                main_module = sys.modules['pipelines.3_inference_ihm.api.main']
+                if hasattr(main_module, 'CLOUD_MONITORING_EXPORT_ERRORS'):
+                    main_module.CLOUD_MONITORING_EXPORT_ERRORS.inc()
+        except Exception:
+            pass  # Ignoré si le compteur n'est pas accessible
         logger.exception("échec de l'envoi des métriques à Cloud Monitoring")

@@ -42,6 +42,13 @@ PRODUCTION_FEATURES_PATH = Path(
     os.getenv("SUPPLEMENTAL_FEATURES_PATH", "storage/production/feedback_features.csv")
 )
 
+# Configuration MLflow pour le retrain via API
+MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "sqlite:///storage/mlflow.db")
+os.environ.setdefault("MLFLOW_TRACKING_URI", MLFLOW_TRACKING_URI)
+if MLFLOW_TRACKING_URI.startswith("sqlite:"):
+    db_path = Path(MLFLOW_TRACKING_URI.replace("sqlite:///", ""))
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
@@ -69,6 +76,10 @@ TELEMETRY_ERRORS = Counter("predictmaint_telemetry_errors_total", "Erreurs de pe
 MODEL_READY = Gauge("predictmaint_model_ready", "1 si le modèle est chargé")
 DRIFT_SHARE = Gauge("predictmaint_drift_share", "Part des variables en dérive (PSI >= seuil)")
 DRIFT_PSI = Gauge("predictmaint_drift_psi", "PSI par variable vs référence TRAIN", ["feature"])
+CLOUD_MONITORING_EXPORT_ERRORS = Counter(
+    "predictmaint_cloud_monitoring_export_errors_total",
+    "Échecs d'export vers Cloud Monitoring"
+)
 
 DRIFT_CHECK_INTERVAL_SECONDS = int(os.getenv("DRIFT_CHECK_INTERVAL_SECONDS", "300"))
 CLOUD_MONITORING_FLUSH_INTERVAL_SECONDS = int(os.getenv("CLOUD_MONITORING_FLUSH_INTERVAL_SECONDS", "60"))
@@ -201,32 +212,44 @@ _retrain_status: dict = {
     "rows_added": 0,
     "error": None,
     "model_version": None,
+    "optimize": False,
+    "trials": 0,
 }
 
 
-def _run_retrain_job(rows_added: int) -> None:
-    # Exécute le pipeline de réentraînement complet en tâche de fond
+def _run_retrain_job(rows_added: int, optimize: bool = True, trials: int = 30) -> None:
+    # Lance le réentraînement complet en arrière-plan
     _retrain_status.update(
         state="running",
         started_at=datetime.now(timezone.utc).isoformat(),
         finished_at=None,
         rows_added=rows_added,
         error=None,
+        optimize=optimize,
+        trials=trials,
     )
     try:
-        # Exécute directement les étapes nécessaires plutôt que src.pipelines.retrain :
-        # ce module fusionne aussi les prédictions/feedback stockés sur GCS
-        # (compte de service trainer requis, écrase le fichier au lieu de fusionner),
-        # ce qui n'est ni nécessaire ni souhaitable ici puisque les lignes déposées
-        # par /retrain/upload ont déjà été ajoutées à PRODUCTION_FEATURES_PATH.
-        env = {**os.environ, "INCLUDE_PRODUCTION_FEEDBACK": "1"}
+        # On exécute directement les étapes au lieu d'utiliser src.pipelines.retrain
+        # car ce dernier fusionne les prédictions/feedback depuis GCS, ce qui n'est
+        # pas nécessaire ici vu que les données uploadées sont déjà ajoutées localement.
+        env = {
+            **os.environ,
+            "INCLUDE_PRODUCTION_FEEDBACK": "1",
+            "MLFLOW_TRACKING_URI": os.getenv("MLFLOW_TRACKING_URI", "sqlite:///storage/mlflow.db"),
+        }
         steps = [
             [sys.executable, "-m", "src.data.prepare"],
             [sys.executable, "-m", "src.features.select_features"],
             [sys.executable, "-m", "src.models.train"],
+        ]
+        # On ajoute l'optimisation Optuna et la promotion si demandé
+        if optimize:
+            steps.append([sys.executable, "-m", "src.models.optimize", "--trials", str(trials)])
+            steps.append([sys.executable, "-m", "src.models.promote"])
+        steps.extend([
             [sys.executable, "-m", "src.models.quality_gate"],
             [sys.executable, "-m", "src.models.register"],
-        ]
+        ])
         for cmd in steps:
             subprocess.run(cmd, check=True, env=env)
         _, metadata = load_assets(force=True)
@@ -272,15 +295,19 @@ def _cloud_monitoring_flush_loop() -> None:
     # Boucle de fond : pousse périodiquement les métriques vers GCP Cloud Monitoring
     while True:
         time.sleep(CLOUD_MONITORING_FLUSH_INTERVAL_SECONDS)
-        cloud_monitoring.flush(
-            GCP_REGION,
-            predictions=PREDICTIONS,
-            telemetry_errors=TELEMETRY_ERRORS,
-            model_ready=MODEL_READY,
-            drift_share=DRIFT_SHARE,
-            drift_psi=DRIFT_PSI,
-            latency=LATENCY,
-        )
+        try:
+            cloud_monitoring.flush(
+                GCP_REGION,
+                predictions=PREDICTIONS,
+                telemetry_errors=TELEMETRY_ERRORS,
+                model_ready=MODEL_READY,
+                drift_share=DRIFT_SHARE,
+                drift_psi=DRIFT_PSI,
+                latency=LATENCY,
+            )
+        except Exception:
+            CLOUD_MONITORING_EXPORT_ERRORS.inc()
+            logger.exception("Cloud Monitoring flush loop error")
 
 
 threading.Thread(target=_cloud_monitoring_flush_loop, daemon=True).start()
@@ -359,12 +386,13 @@ async def retrain_upload(file: UploadFile = File(...)):
         _retrain_lock.release()
         raise
 
-    # Le job tourne dans un thread daemon : la requête HTTP répond tout de
-    # suite, l'avancement se consulte ensuite via /retrain/status.
-    thread = threading.Thread(target=_run_retrain_job, args=(rows_added,), daemon=True)
+    # Le job tourne en arrière-plan : la requête HTTP répond immédiatement,
+    # l'utilisateur peut suivre l'avancement via /retrain/status.
+    # L'optimisation est activée par défaut pour garder la meilleure qualité
+    thread = threading.Thread(target=_run_retrain_job, args=(rows_added, True, 30), daemon=True)
     thread.start()
-    logger.info("automatic retrain triggered rows_added=%s", rows_added)
-    return {"status": "retrain_triggered", "rows_added": rows_added}
+    logger.info("automatic retrain triggered rows_added=%s optimize=True trials=30", rows_added)
+    return {"status": "retrain_triggered", "rows_added": rows_added, "optimize": True, "trials": 30}
 
 
 @app.get("/retrain/status")

@@ -32,7 +32,7 @@ Ce guide explique comment injecter de nouvelles données, monitorer les performa
          └──► Alertes Grafana si PSI > seuil
 
 ┌────────────────────────┐
-│ 4. RETRAINING          │  ← Déclenchement manuel ou auto
+│ 4. RETRAINING          │  Déclenchement manuel ou auto
 │  POST /retrain/upload  │
 │  ou Cloud Run Job      │
 └────────┬───────────────┘
@@ -42,7 +42,7 @@ Ce guide explique comment injecter de nouvelles données, monitorer les performa
          ├──► Entraînement 3+ modèles
          ├──► Quality gate (recall, PR-AUC)
          ├──► Promotion champion
-         └──► Upload GCS + Reload API
+         puis Upload GCS et Reload API
 ```
 
 ---
@@ -238,8 +238,8 @@ L'API calcule **automatiquement toutes les 5 minutes** :
 
 - **PSI (Population Stability Index)** par feature
   - Compare la distribution actuelle (prédictions récentes) vs distribution TRAIN
-  - PSI > 0.1 → dérive modérée
-  - PSI > 0.25 → dérive forte
+  - PSI > 0.1 : dérive modérée
+  - PSI > 0.25 : dérive forte
 
 - **Drift share** : pourcentage de features en dérive
 
@@ -322,20 +322,26 @@ with open("nouvelles_donnees.csv", "rb") as f:
 ```json
 {
   "status": "retrain_triggered",
-  "rows_added": 245
+  "rows_added": 245,
+  "optimize": true,
+  "trials": 30
 }
 ```
 
 #### Ce qui se passe ensuite
 
-Le retraining se fait **en arrière-plan** (thread daemon) :
+Le retraining se fait **en arrière-plan** (thread daemon) avec **optimisation Optuna activée** :
 
 1. **Préparation** : `python -m src.data.prepare` (avec `INCLUDE_PRODUCTION_FEEDBACK=1`)
 2. **Sélection features** : `python -m src.features.select_features`
-3. **Entraînement** : `python -m src.models.train` (3+ modèles)
-4. **Quality gate** : `python -m src.models.quality_gate` (vérifie recall, PR-AUC)
-5. **Promotion** : `python -m src.models.register` (si meilleur que champion)
-6. **Reload** : Rechargement automatique du modèle en mémoire
+3. **Entraînement baseline** : `python -m src.models.train` (3+ modèles)
+4. **Optimisation** : `python -m src.models.optimize` (30 trials Optuna sur XGBoost) - environ 15 min
+5. **Promotion** : `python -m src.models.promote` (compare optimisé vs baseline)
+6. **Quality gate** : `python -m src.models.quality_gate` (vérifie recall supérieur ou égal à 85%, PR-AUC supérieur ou égal à 0.75)
+7. **Enregistrement** : `python -m src.models.register` (sauvegarde champion)
+8. **Reload** : Rechargement automatique du modèle en mémoire
+
+**Durée totale** : environ 15 à 20 minutes (optimisation incluse pour qualité maximale)
 
 #### Suivre l'avancement
 
@@ -352,7 +358,9 @@ curl "${API_URL}/retrain/status" \
   "finished_at": null,
   "rows_added": 245,
   "error": null,
-  "model_version": null
+  "model_version": null,
+  "optimize": true,
+  "trials": 30
 }
 ```
 
@@ -361,12 +369,16 @@ curl "${API_URL}/retrain/status" \
 {
   "state": "completed",
   "started_at": "2026-09-04T16:00:00.123456Z",
-  "finished_at": "2026-09-04T16:08:32.987654Z",
+  "finished_at": "2026-09-04T16:18:32.987654Z",
   "rows_added": 245,
   "error": null,
-  "model_version": "optimized-abc123def456"
+  "model_version": "optimized-abc123def456",
+  "optimize": true,
+  "trials": 30
 }
 ```
+
+À savoir : le champion produit sera toujours `xgboost_optimized`, ce qui maintient le standard de qualité actuel (100% recall, PR-AUC environ 0.95).
 
 ---
 
@@ -410,7 +422,7 @@ gcloud run jobs execute predictmaint-retrain \
 
 Le job est exécuté automatiquement par GitHub Actions :
 - À chaque push sur `main` (workflow `deploy.yml`)
-- Ou manuellement via **Actions → MLOps - Retrain and Deploy → Run workflow**
+- Ou manuellement via **Actions > MLOps - Retrain and Deploy > Run workflow**
 
 ---
 
@@ -474,7 +486,7 @@ def performance_report():
 # Chaque jour : nouvelles prédictions
 for engine in moteurs_actifs:
     POST /predict avec historique complet
-    → Stocké sur GCS + monitoring drift
+    puis stocké sur GCS avec monitoring drift
 ```
 
 ### Semaine 5 : Feedback arrive (30 jours après)
@@ -483,7 +495,7 @@ for engine in moteurs_actifs:
 # Pour chaque prédiction de la semaine 1
 for prediction_id in predictions_semaine_1:
     POST /feedback avec actual_failure_within_30_cycles
-    → Stocké sur GCS
+    puis stocké sur GCS
 ```
 
 ### Semaine 5 : Retraining automatique
@@ -492,10 +504,10 @@ for prediction_id in predictions_semaine_1:
 ```bash
 git commit -m "trigger retrain"
 git push origin main
-→ GitHub Actions exécute le job Cloud Run
-→ Récupère feedback GCS
-→ Retrain + Quality gate
-→ Redéploie API avec nouveau champion
+1. GitHub Actions exécute le job Cloud Run
+2. Récupère feedback GCS
+3. Retrain avec Quality gate
+4. Redéploie API avec nouveau champion
 ```
 
 **Option 2 : Job manuel**
@@ -506,8 +518,7 @@ gcloud run jobs execute predictmaint-retrain --region europe-west1
 **Option 3 : Upload CSV direct**
 ```bash
 curl -X POST "${API_URL}/retrain/upload" -F "file=@data.csv"
-→ Retrain en background
-→ Nouveau modèle chargé automatiquement
+Résultat : Retrain en background puis nouveau modèle chargé automatiquement
 ```
 
 ### Monitoring continu
@@ -562,7 +573,7 @@ Si un modèle ne passe pas ces seuils, le retraining échoue et le champion actu
 
 ### Configurer les notifications
 
-Dans Grafana → Alerting → Contact points :
+Dans Grafana > Alerting > Contact points :
 - Email
 - Slack
 - PagerDuty
@@ -642,7 +653,7 @@ Le quality gate automatique vérifie :
 - PR-AUC ≥ 75%
 - Meilleur que champion actuel
 
-Si échec → champion actuel reste en place (pas de régression)
+Si échec : le champion actuel reste en place (pas de régression)
 
 ### 4. Versioning des modèles
 

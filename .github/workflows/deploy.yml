@@ -22,7 +22,7 @@ env:
   GRAFANA_SERVICE: predictmaint-grafana
   GRAFANA_SECRET: predictmaint-grafana-admin
   RETRAIN_JOB: predictmaint-retrain
-  OPTUNA_TRIALS: ${{ vars.MLOPS_OPTUNA_TRIALS || '10' }}
+  OPTUNA_TRIALS: ${{ vars.MLOPS_OPTUNA_TRIALS || '30' }}
   PREDICTION_BUCKET: ${{ vars.PREDICTION_BUCKET }}
   MODEL_ARTIFACT_BUCKET: ${{ vars.MODEL_ARTIFACT_BUCKET }}
   MLFLOW_TRACKING_URI: ${{ vars.MLFLOW_TRACKING_URI }}

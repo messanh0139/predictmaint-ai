@@ -69,8 +69,26 @@ def main() -> None:
     if os.getenv("INCLUDE_PRODUCTION_FEEDBACK", "0") == "1":
         supplemental = load_supplemental_features(supplemental_path, train_features.columns)
         if not supplemental.empty:
-            supplemental_rows = int(len(supplemental))
-            train_features = pd.concat([train_features, supplemental], ignore_index=True)
+            production_engines = set(supplemental[ID_COL].unique())
+
+            # On filtre les moteurs de validation/calibration pour éviter les fuites de données
+            forbidden = set(val_raw[ID_COL].unique()) | set(calibration_raw[ID_COL].unique())
+            overlap = production_engines & forbidden
+
+            if overlap:
+                print(
+                    f"Attention: {len(overlap)} moteurs du feedback sont aussi dans validation/calibration: "
+                    f"{sorted(overlap)[:5]}{'...' if len(overlap) > 5 else ''}"
+                )
+                print("Ces moteurs sont retirés pour éviter les fuites de données.")
+                supplemental = supplemental[~supplemental[ID_COL].isin(forbidden)].copy()
+                supplemental_rows = int(len(supplemental))
+                print(f"Il reste {supplemental_rows} lignes utilisables après filtrage.")
+            else:
+                supplemental_rows = int(len(supplemental))
+
+            if supplemental_rows > 0:
+                train_features = pd.concat([train_features, supplemental], ignore_index=True)
 
     train_features.to_csv(PROCESSED_DIR / "train_features.csv", index=False)
     calibration_features.to_csv(PROCESSED_DIR / "calibration_features.csv", index=False)
