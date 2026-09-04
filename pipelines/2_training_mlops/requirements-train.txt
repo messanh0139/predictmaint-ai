@@ -1,4 +1,4 @@
--r requirements-api.txt
+-r ../3_inference_ihm/api/requirements-api.txt
 optuna>=4,<5
 mlflow>=3,<4
 evidently>=0.7,<1

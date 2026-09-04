@@ -1,1 +1,1 @@
--r requirements-dev.txt
+-r infrastructure/requirements-dev.txt
