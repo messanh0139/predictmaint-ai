@@ -194,7 +194,7 @@ jobs:
       - name: Deploy public presentation dashboard
         shell: bash
         run: |
-          ENV_VARS="REACT_APP_API_URL=${API_URL}"
+          ENV_VARS="REACT_APP_API_URL=${API_URL},PORT=80"
           [ -n "${MLFLOW_URL:-}" ] && ENV_VARS="${ENV_VARS},REACT_APP_MLFLOW_URL=${MLFLOW_URL}"
           [ -n "${GRAFANA_URL:-}" ] && ENV_VARS="${ENV_VARS},REACT_APP_GRAFANA_URL=${GRAFANA_URL}"
           gcloud run deploy "${DASHBOARD_SERVICE}" \
@@ -204,7 +204,7 @@ jobs:
             --service-account "${{ secrets.GCP_RUNTIME_SERVICE_ACCOUNT }}" \
             --set-env-vars "${ENV_VARS}" \
             --port 80 \
-            --cpu 1 --memory 512Mi --concurrency 50 --timeout 60 --min 0 --max 3 \
+            --cpu 1 --memory 512Mi --concurrency 50 --timeout 300 --min 0 --max 3 \
             --allow-unauthenticated \
             --quiet
 

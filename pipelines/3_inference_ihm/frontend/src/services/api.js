@@ -1,7 +1,5 @@
 import axios from 'axios';
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-const API_AUDIENCE = process.env.REACT_APP_API_AUDIENCE || '';
+import { API_URL, API_AUDIENCE } from '../config';
 
 // Configuration axios avec timeout
 const apiClient = axios.create({

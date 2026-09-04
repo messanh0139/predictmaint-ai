@@ -8,6 +8,7 @@ import PerformanceTab from './components/PerformanceTab';
 import RetrainTab from './components/RetrainTab';
 import ArchitectureTab from './components/ArchitectureTab';
 import { checkHealth } from './services/api';
+import { DATA_PATH, METADATA_PATH, METRICS_PATH } from './config';
 import './styles/App.css';
 
 const App = () => {
@@ -17,10 +18,6 @@ const App = () => {
   const [metadata, setMetadata] = useState({});
   const [testMetrics, setTestMetrics] = useState({});
   const [demoData, setDemoData] = useState([]);
-
-  const DATA_PATH = process.env.REACT_APP_DATA_PATH || '/data/raw/test_FD001.txt';
-  const METADATA_PATH = process.env.REACT_APP_METADATA_PATH || '/models/model_metadata.json';
-  const METRICS_PATH = process.env.REACT_APP_METRICS_PATH || '/models/test_metrics.json';
 
   // Colonnes du dataset
   const BASE_COLUMNS = [
@@ -82,7 +79,7 @@ const App = () => {
     fetchMetadata();
     fetchTestMetrics();
     fetchDemoData();
-  }, [DATA_PATH, METADATA_PATH, METRICS_PATH]);
+  }, []);
 
   const tabs = [
     { id: 'prediction', label: 'Démonstration prédictive' },

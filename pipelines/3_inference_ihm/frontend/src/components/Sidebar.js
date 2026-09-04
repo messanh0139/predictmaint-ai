@@ -1,10 +1,7 @@
 import React from 'react';
+import { PROMETHEUS_URL, GRAFANA_URL, MLFLOW_URL, API_DOCS_URL } from '../config';
 
 const Sidebar = ({ healthStatus, healthError }) => {
-  const PROMETHEUS_URL = process.env.REACT_APP_PROMETHEUS_URL || 'http://localhost:9090';
-  const GRAFANA_URL = process.env.REACT_APP_GRAFANA_URL || 'http://localhost:3000';
-  const MLFLOW_URL = process.env.REACT_APP_MLFLOW_URL || 'http://localhost:5000';
-  const API_DOCS_URL = process.env.REACT_APP_API_DOCS_URL || 'http://localhost:8000/docs';
 
   return (
     <div className="sidebar">
