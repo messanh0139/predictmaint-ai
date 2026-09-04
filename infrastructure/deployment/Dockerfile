@@ -17,6 +17,7 @@ COPY storage/models/model.joblib ./storage/models/model.joblib
 COPY storage/models/model_metadata.json ./storage/models/model_metadata.json
 
 RUN useradd --create-home --uid 10001 appuser \
+    && mkdir -p /app/storage/processed /app/storage/models/candidates /app/storage/production /app/storage/reference \
     && chown -R appuser:appuser /app
 USER 10001
 

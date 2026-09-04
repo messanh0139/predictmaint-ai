@@ -276,7 +276,11 @@ def _run_retrain_job(rows_added: int, optimize: bool = True, trials: int = 30) -
             [sys.executable, "-m", "src.models.register"],
         ])
         for cmd in steps:
-            subprocess.run(cmd, check=True, env=env, cwd=PROJECT_ROOT)
+            result = subprocess.run(cmd, env=env, cwd=PROJECT_ROOT, capture_output=True, text=True)
+            if result.returncode != 0:
+                error_detail = f"Command {cmd} failed with exit code {result.returncode}\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+                logger.error(error_detail)
+                raise RuntimeError(error_detail)
         _, metadata = load_assets(force=True)
         _retrain_status.update(
             state="completed",

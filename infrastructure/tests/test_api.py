@@ -153,10 +153,16 @@ def test_retrain_upload_triggers_background_job_and_reports_failure(monkeypatch,
 
     started = threading.Event()
 
-    def fake_run(cmd, check, env, cwd=None):
+    def fake_run(cmd, env, cwd=None, capture_output=False, text=False):
         # Simule l'échec du script de retraining réel (pas de subprocess dans les tests).
         started.set()
-        raise RuntimeError("subprocess disabled in test")
+
+        class FakeResult:
+            returncode = 1
+            stdout = "fake stdout"
+            stderr = "subprocess disabled in test"
+
+        return FakeResult()
 
     monkeypatch.setattr(api.subprocess, "run", fake_run)
 
