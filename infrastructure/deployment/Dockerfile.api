@@ -11,8 +11,9 @@ RUN apt-get update && apt-get install -y \
 COPY pipelines/3_inference_ihm/api/requirements-api.txt .
 RUN pip install --no-cache-dir -r requirements-api.txt
 
-# Copie du code de l'API
+# Copie du code de l'API et du module src
 COPY pipelines/3_inference_ihm/api/ ./api/
+COPY src ./src
 COPY storage/ ./storage/
 
 # Exposition du port

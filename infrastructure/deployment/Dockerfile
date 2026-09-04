@@ -6,15 +6,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PORT=8080
 
 WORKDIR /app
-COPY requirements-api.txt constraints-model.txt ./
+COPY pipelines/3_inference_ihm/api/requirements-api.txt ./requirements-api.txt
+COPY constraints-model.txt ./
 RUN pip install --no-cache-dir -r requirements-api.txt -c constraints-model.txt
 
-COPY api ./api
+COPY pipelines/3_inference_ihm/api ./api
 COPY src ./src
-COPY data/raw ./data/raw
-COPY data/reference ./data/reference
-COPY models/model.joblib ./models/model.joblib
-COPY models/model_metadata.json ./models/model_metadata.json
+COPY storage/raw ./storage/raw
+COPY storage/models/model.joblib ./storage/models/model.joblib
+COPY storage/models/model_metadata.json ./storage/models/model_metadata.json
 
 RUN useradd --create-home --uid 10001 appuser \
     && chown -R appuser:appuser /app
