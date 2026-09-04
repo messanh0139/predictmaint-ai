@@ -33,12 +33,15 @@ from src.data.collect_feedback import append_feature_dataset, build_uploaded_fea
 from src.features.build_features import build_causal_features
 from src.monitoring.drift import current_features_from_prediction_log, statistical_drift_report
 
-MODEL_PATH = Path(os.getenv("MODEL_PATH", "storage/models/model.joblib"))
-METADATA_PATH = Path(os.getenv("MODEL_METADATA_PATH", "storage/models/model_metadata.json"))
+# Racine du projet pour exécuter les commandes depuis le bon répertoire
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+
+MODEL_PATH = PROJECT_ROOT / Path(os.getenv("MODEL_PATH", "storage/models/model.joblib"))
+METADATA_PATH = PROJECT_ROOT / Path(os.getenv("MODEL_METADATA_PATH", "storage/models/model_metadata.json"))
 PREDICTION_LOG_PATH = Path(os.getenv("PREDICTION_LOG_PATH", "/tmp/predictions.jsonl"))
 FEEDBACK_LOG_PATH = Path(os.getenv("FEEDBACK_LOG_PATH", "/tmp/feedback.jsonl"))
 PREDICTION_BUCKET = os.getenv("PREDICTION_BUCKET")
-PRODUCTION_FEATURES_PATH = Path(
+PRODUCTION_FEATURES_PATH = PROJECT_ROOT / Path(
     os.getenv("SUPPLEMENTAL_FEATURES_PATH", "storage/production/feedback_features.csv")
 )
 
@@ -251,7 +254,7 @@ def _run_retrain_job(rows_added: int, optimize: bool = True, trials: int = 30) -
             [sys.executable, "-m", "src.models.register"],
         ])
         for cmd in steps:
-            subprocess.run(cmd, check=True, env=env)
+            subprocess.run(cmd, check=True, env=env, cwd=PROJECT_ROOT)
         _, metadata = load_assets(force=True)
         _retrain_status.update(
             state="completed",
