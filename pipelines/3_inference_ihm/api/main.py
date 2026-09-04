@@ -16,6 +16,7 @@ from uuid import uuid4
 import joblib
 import pandas as pd
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
 from pydantic import BaseModel, Field, model_validator
 from starlette.responses import Response
@@ -51,6 +52,15 @@ app = FastAPI(
     title="PredictMaint AI",
     version="2.0.0",
     description="API de maintenance prédictive sur le jeu de données FD001.",
+)
+
+# Configuration CORS pour permettre les appels depuis le dashboard
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Pour démo/PoC - en production, spécifier les domaines autorisés
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 PREDICTIONS = Counter("predictmaint_predictions_total", "Nombre de prédictions", ["risk"])
