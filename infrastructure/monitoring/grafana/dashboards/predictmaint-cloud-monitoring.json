@@ -8,60 +8,112 @@
     {
       "type": "timeseries",
       "title": "Predictions / minute (par risque)",
-      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
       "targets": [
         {
           "refId": "A",
           "queryType": "timeSeriesList",
           "timeSeriesList": {
-            "filters": ["metric.type=\"custom.googleapis.com/predictmaint/predictions_total\""],
+            "filters": [
+              "metric.type=\"custom.googleapis.com/predictmaint/predictions_total\""
+            ],
             "view": "FULL",
-            "groupBys": ["metric.label.risk"],
+            "groupBys": [
+              "metric.label.risk"
+            ],
             "perSeriesAligner": "ALIGN_RATE",
             "crossSeriesReducer": "REDUCE_NONE",
             "alignmentPeriod": "60s"
+          },
+          "datasource": {
+            "type": "stackdriver",
+            "uid": "predictmaint-cloud-monitoring"
           }
         }
-      ]
+      ],
+      "datasource": {
+        "type": "stackdriver",
+        "uid": "predictmaint-cloud-monitoring"
+      }
     },
     {
       "type": "timeseries",
       "title": "Latence moyenne des prédictions",
-      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
       "targets": [
         {
           "refId": "A",
           "queryType": "timeSeriesList",
           "timeSeriesList": {
-            "filters": ["metric.type=\"custom.googleapis.com/predictmaint/prediction_latency_seconds_mean\""],
+            "filters": [
+              "metric.type=\"custom.googleapis.com/predictmaint/prediction_latency_seconds_mean\""
+            ],
             "view": "FULL",
             "perSeriesAligner": "ALIGN_MEAN",
             "alignmentPeriod": "60s"
+          },
+          "datasource": {
+            "type": "stackdriver",
+            "uid": "predictmaint-cloud-monitoring"
           }
         }
-      ]
+      ],
+      "datasource": {
+        "type": "stackdriver",
+        "uid": "predictmaint-cloud-monitoring"
+      }
     },
     {
       "type": "stat",
       "title": "Model ready",
-      "gridPos": { "x": 0, "y": 8, "w": 6, "h": 5 },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 6,
+        "h": 5
+      },
       "targets": [
         {
           "refId": "A",
           "queryType": "timeSeriesList",
           "timeSeriesList": {
-            "filters": ["metric.type=\"custom.googleapis.com/predictmaint/model_ready\""],
+            "filters": [
+              "metric.type=\"custom.googleapis.com/predictmaint/model_ready\""
+            ],
             "view": "FULL",
             "perSeriesAligner": "ALIGN_MEAN",
             "alignmentPeriod": "60s"
+          },
+          "datasource": {
+            "type": "stackdriver",
+            "uid": "predictmaint-cloud-monitoring"
           }
         }
-      ]
+      ],
+      "datasource": {
+        "type": "stackdriver",
+        "uid": "predictmaint-cloud-monitoring"
+      }
     },
     {
       "type": "gauge",
       "title": "Drift share (part des variables en dérive)",
-      "gridPos": { "x": 6, "y": 8, "w": 6, "h": 5 },
+      "gridPos": {
+        "x": 6,
+        "y": 8,
+        "w": 6,
+        "h": 5
+      },
       "fieldConfig": {
         "defaults": {
           "min": 0,
@@ -69,8 +121,14 @@
           "unit": "percentunit",
           "thresholds": {
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "red", "value": 0.2 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.2
+              }
             ]
           }
         }
@@ -80,36 +138,66 @@
           "refId": "A",
           "queryType": "timeSeriesList",
           "timeSeriesList": {
-            "filters": ["metric.type=\"custom.googleapis.com/predictmaint/drift_share\""],
+            "filters": [
+              "metric.type=\"custom.googleapis.com/predictmaint/drift_share\""
+            ],
             "view": "FULL",
             "perSeriesAligner": "ALIGN_MEAN",
             "alignmentPeriod": "60s"
+          },
+          "datasource": {
+            "type": "stackdriver",
+            "uid": "predictmaint-cloud-monitoring"
           }
         }
-      ]
+      ],
+      "datasource": {
+        "type": "stackdriver",
+        "uid": "predictmaint-cloud-monitoring"
+      }
     },
     {
       "type": "stat",
       "title": "Telemetry errors (total)",
-      "gridPos": { "x": 12, "y": 8, "w": 6, "h": 5 },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 6,
+        "h": 5
+      },
       "targets": [
         {
           "refId": "A",
           "queryType": "timeSeriesList",
           "timeSeriesList": {
-            "filters": ["metric.type=\"custom.googleapis.com/predictmaint/telemetry_errors_total\""],
+            "filters": [
+              "metric.type=\"custom.googleapis.com/predictmaint/telemetry_errors_total\""
+            ],
             "view": "FULL",
             "perSeriesAligner": "ALIGN_MAX",
             "crossSeriesReducer": "REDUCE_SUM",
             "alignmentPeriod": "60s"
+          },
+          "datasource": {
+            "type": "stackdriver",
+            "uid": "predictmaint-cloud-monitoring"
           }
         }
-      ]
+      ],
+      "datasource": {
+        "type": "stackdriver",
+        "uid": "predictmaint-cloud-monitoring"
+      }
     },
     {
       "type": "timeseries",
       "title": "Cloud Run - requêtes API (natif, aucune métrique custom)",
-      "gridPos": { "x": 18, "y": 8, "w": 6, "h": 5 },
+      "gridPos": {
+        "x": 18,
+        "y": 8,
+        "w": 6,
+        "h": 5
+      },
       "targets": [
         {
           "refId": "A",
@@ -123,21 +211,40 @@
             "perSeriesAligner": "ALIGN_RATE",
             "crossSeriesReducer": "REDUCE_SUM",
             "alignmentPeriod": "60s"
+          },
+          "datasource": {
+            "type": "stackdriver",
+            "uid": "predictmaint-cloud-monitoring"
           }
         }
-      ]
+      ],
+      "datasource": {
+        "type": "stackdriver",
+        "uid": "predictmaint-cloud-monitoring"
+      }
     },
     {
       "type": "bargauge",
       "title": "PSI par variable (dérive vs référence TRAIN)",
-      "gridPos": { "x": 0, "y": 13, "w": 24, "h": 8 },
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 24,
+        "h": 8
+      },
       "fieldConfig": {
         "defaults": {
           "min": 0,
           "thresholds": {
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "red", "value": 0.2 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.2
+              }
             ]
           }
         }
@@ -147,15 +254,27 @@
           "refId": "A",
           "queryType": "timeSeriesList",
           "timeSeriesList": {
-            "filters": ["metric.type=\"custom.googleapis.com/predictmaint/drift_psi\""],
+            "filters": [
+              "metric.type=\"custom.googleapis.com/predictmaint/drift_psi\""
+            ],
             "view": "FULL",
-            "groupBys": ["metric.label.feature"],
+            "groupBys": [
+              "metric.label.feature"
+            ],
             "perSeriesAligner": "ALIGN_MEAN",
             "crossSeriesReducer": "REDUCE_MEAN",
             "alignmentPeriod": "60s"
+          },
+          "datasource": {
+            "type": "stackdriver",
+            "uid": "predictmaint-cloud-monitoring"
           }
         }
-      ]
+      ],
+      "datasource": {
+        "type": "stackdriver",
+        "uid": "predictmaint-cloud-monitoring"
+      }
     }
   ]
 }

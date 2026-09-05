@@ -3,6 +3,10 @@ apiVersion: 1
 datasources:
   - name: Cloud Monitoring
     type: stackdriver
+    # uid fixe : les panneaux des dashboards y font référence explicitement,
+    # Grafana 12 n'applique pas toujours la datasource par défaut aux
+    # dashboards chargés par fichier.
+    uid: predictmaint-cloud-monitoring
     access: proxy
     jsonData:
       authenticationType: gce
