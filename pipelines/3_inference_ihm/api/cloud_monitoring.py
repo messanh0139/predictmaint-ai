@@ -28,6 +28,9 @@ _project_id: str | None = None
 _disabled = False
 _last_latency_count = 0.0
 _last_latency_sum = 0.0
+# Point de départ des compteurs CUMULATIVE : fixe pour toute la vie du process,
+# requis par Cloud Monitoring pour distinguer un compteur d'un gauge.
+_start_time = time.time()
 
 
 def _get_client() -> monitoring.MetricServiceClient | None:
@@ -89,15 +92,17 @@ def _gauge_series(resource, metric_type: str, labels: dict, value: float, now: f
 
 
 def _counter_series(resource, metric_type: str, labels: dict, value: float, now: float) -> monitoring.TimeSeries:
-    # Construire une série de type compteur
+    # CUMULATIVE, pas GAUGE : ces valeurs ne font qu'augmenter, et un aligneur de
+    # taux (ALIGN_RATE) comme "Predictions / minute" ne fonctionne qu'avec ce type.
     ts = monitoring.TimeSeries()
     ts.metric.type = METRIC_PREFIX + metric_type
     for key, val in labels.items():
         ts.metric.labels[key] = val
     ts.resource = resource
-    ts.metric_kind = metric_types.MetricDescriptor.MetricKind.GAUGE
+    ts.metric_kind = metric_types.MetricDescriptor.MetricKind.CUMULATIVE
     ts.value_type = metric_types.MetricDescriptor.ValueType.INT64
     point = monitoring.Point()
+    point.interval.start_time = {"seconds": int(_start_time)}
     point.interval.end_time = {"seconds": int(now)}
     point.value.int64_value = int(value)
     ts.points = [point]
