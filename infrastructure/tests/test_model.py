@@ -78,9 +78,7 @@ def test_local_registry_is_versioned_and_hashes_artifact(tmp_path):
     assert (tmp_path / "registry" / "v-test" / "model.joblib").exists()
 
 
-# Régression reproduite en production le 2026-09-05 : une exécution dont le
-# candidat ne bat pas sa propre baseline ne doit jamais écraser, dans le
-# registre local, un champion antérieur meilleur.
+# le registre local ne doit pas remplacer le champion par un modèle moins bon
 def test_local_registry_never_regresses_champion_to_a_worse_version(tmp_path):
     import json
 
@@ -114,5 +112,5 @@ def test_local_registry_never_regresses_champion_to_a_worse_version(tmp_path):
 
     index = json.loads((registry_dir / "index.json").read_text(encoding="utf-8"))
     assert index["champion"] == "v-good"
-    # L'artefact moins bon reste tout de même versionné, pour la traçabilité.
+    # il reste quand même dans l'historique des versions
     assert any(v["version"] == "v-worse" for v in index["versions"])

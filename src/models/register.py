@@ -28,8 +28,7 @@ def register_local_model(
     shutil.copy2(model_path, target_model)
     shutil.copy2(metadata_path, target_metadata)
 
-    # Chemin affiché relatif à la racine du projet si possible, sinon relatif
-    # au registre lui-même (cas où registry_dir est hors de MODELS_DIR.parent).
+    # chemin relatif à la racine du projet si possible, sinon au registre
     try:
         artifact_display = str(target_model.relative_to(MODELS_DIR.parent))
         metadata_display = str(target_metadata.relative_to(MODELS_DIR.parent))
@@ -51,14 +50,11 @@ def register_local_model(
         index = json.loads(index_path.read_text(encoding="utf-8"))
     else:
         index = {"champion": None, "versions": []}
-    # Remplace une éventuelle entrée existante pour cette version avant de la rajouter.
+    # si cette version existait déjà, on remplace l'ancienne entrée
     index["versions"] = [x for x in index.get("versions", []) if x.get("version") != version]
     index["versions"].append(entry)
 
-    # Ne désigne cette version comme champion local que si elle bat réellement
-    # le champion actuel (même règle que le pointeur GCS) : une exécution dont
-    # le candidat ne dépasse pas sa propre baseline ne doit jamais régresser un
-    # champion antérieur meilleur.
+    # même règle que pour GCS : on ne remplace le champion que si c'est vraiment mieux
     current_champion_entry = next(
         (x for x in index["versions"] if x.get("version") == index.get("champion")), None
     )
@@ -77,8 +73,7 @@ def register_local_model(
 
 
 def _current_mlflow_champion_metrics(client, model_registry_name: str) -> dict | None:
-    # Lit les validation_metrics de la version actuellement aliasée "champion",
-    # ou None si l'alias n'existe pas encore (premier enregistrement).
+    # récupère les métriques de la version aliasée "champion", ou None si pas encore d'alias
     try:
         champion_version = client.get_model_version_by_alias(model_registry_name, "champion")
         return json.loads(champion_version.tags["validation_metrics_json"])
@@ -87,11 +82,8 @@ def _current_mlflow_champion_metrics(client, model_registry_name: str) -> dict |
 
 
 def register_mlflow(model_path: Path, metadata_path: Path) -> dict:
-    # Enregistre une nouvelle version dans le registre MLflow si la dépendance
-    # est disponible. Chaque run crée une version (traçabilité complète), mais
-    # l'alias "champion" (models:/<name>@champion) n'est déplacé que si cette
-    # version bat réellement l'actuel champion MLflow — même règle que pour le
-    # pointeur GCS et le registre local, pour ne jamais régresser silencieusement.
+    # Enregistre une nouvelle version dans MLflow (si installé). L'alias
+    # "champion" ne bouge que si cette version est vraiment meilleure.
     try:
         import mlflow
         import mlflow.sklearn
@@ -118,11 +110,7 @@ def register_mlflow(model_path: Path, metadata_path: Path) -> dict:
             for key, value in validation_metrics.items():
                 if isinstance(value, (int, float)):
                     mlflow.log_metric(f"validation_{key}", value)
-            # cloudpickle plutôt que le format skops par défaut : skops refuse
-            # de sérialiser certains types internes de nos pipelines (ex.
-            # numpy.dtype) sans liste explicite de types "de confiance". Nos
-            # artefacts sont produits en interne (jamais un fichier externe
-            # non fiable), donc pas de risque réel à utiliser cloudpickle ici.
+            # cloudpickle : skops (format par défaut) rejette nos pipelines
             mlflow.sklearn.log_model(model, name="model", serialization_format="cloudpickle")
             model_uri = f"runs:/{run.info.run_id}/model"
             mv = mlflow.register_model(model_uri=model_uri, name=model_registry_name)
@@ -163,8 +151,7 @@ def main() -> None:
     mlflow_status = register_mlflow(model_path, metadata_path)
     gcs_status = upload_champion_to_gcs(model_path, metadata_path)
     status = {"local_registry": local, "mlflow_registry": mlflow_status, "gcs_artifact_store": gcs_status}
-    # Si un bucket GCS est configuré, l'upload y est obligatoire : on échoue
-    # explicitement plutôt que de laisser passer un enregistrement incomplet.
+    # si un bucket est configuré, l'upload GCS est obligatoire : on plante plutôt que d'ignorer l'échec
     if os.getenv("MODEL_ARTIFACT_BUCKET") and gcs_status.get("status") != "uploaded":
         raise RuntimeError(f"Persistent GCS model registration failed: {gcs_status}")
     (MODELS_DIR / "registry_status.json").write_text(

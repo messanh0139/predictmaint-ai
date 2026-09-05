@@ -84,9 +84,7 @@ def test_first_upload_with_no_existing_champion_sets_the_pointer(tmp_path, monke
 
 
 def test_worse_candidate_never_overwrites_a_better_gcs_champion(tmp_path, monkeypatch):
-    # Régression reproduite en production le 2026-09-05 : une exécution dont le
-    # candidat ne bat pas sa propre baseline ne doit jamais écraser un champion
-    # antérieur meilleur (comparaison globale, pas seulement intra-run).
+    # bug vu en prod : un run moins bon que le champion existant ne doit pas l'écraser
     store: dict = {}
     _install_fake_gcs(monkeypatch, store)
 
@@ -99,7 +97,7 @@ def test_worse_candidate_never_overwrites_a_better_gcs_champion(tmp_path, monkey
 
     assert result["status"] == "uploaded"
     assert result["global_champion_updated"] is False
-    # L'artefact versionné est bien publié (traçabilité), mais le pointeur global reste inchangé.
+    # l'artefact est quand même publié (pour l'historique), mais le pointeur ne bouge pas
     assert "models/v-worse/model.joblib" in store
     assert json.loads(store["models/champion.json"])["model_version"] == "v-good"
 

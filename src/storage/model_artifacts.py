@@ -8,8 +8,7 @@ from src.models.common import validation_sort_key
 
 
 def _current_gcs_champion_metrics(bucket) -> dict | None:
-    # Lit les validation_metrics du champion actuellement pointé par champion.json
-    # sur GCS, ou None si absent/illisible (premier déploiement, ex.).
+    # Récupère les métriques du champion pointé par champion.json, ou None si absent
     pointer_blob = bucket.blob("models/champion.json")
     if not pointer_blob.exists():
         return None
@@ -18,20 +17,16 @@ def _current_gcs_champion_metrics(bucket) -> dict | None:
         metadata = json.loads(bucket.blob(pointer["metadata_object"]).download_as_text())
         return metadata.get("validation_metrics")
     except Exception:
-        # Pointeur corrompu ou artefact manquant : on ne bloque pas l'upload versionné,
-        # mais on ne peut pas garantir la non-régression -> traité comme "pas de champion".
+        # pointeur cassé ou fichier manquant -> on considère qu'il n'y a pas de champion
         return None
 
 
 def upload_champion_to_gcs(model_path: Path, metadata_path: Path) -> dict:
-    # Publie le modèle (artefact + métadonnées) sur GCS, toujours sous un chemin
-    # versionné. Ne déplace le pointeur global champion.json que si ce modèle est
-    # réellement meilleur que le champion GCS actuel (même règle que promote.py) :
-    # une exécution qui ne bat pas sa propre baseline ne doit jamais écraser un
-    # champion plus ancien mais meilleur.
+    # Envoie le modèle sur GCS (toujours), et ne déplace le pointeur champion.json
+    # que si ce modèle est vraiment meilleur que l'actuel (sinon on garde l'ancien)
     bucket_name = os.getenv("MODEL_ARTIFACT_BUCKET")
     if not bucket_name:
-        # Upload désactivé si le bucket n'est pas configuré (ex : environnement local/CI sans cloud).
+        # pas de bucket configuré (dev local, CI) -> on n'upload rien
         return {"status": "skipped", "reason": "MODEL_ARTIFACT_BUCKET not configured"}
     try:
         from google.cloud import storage
@@ -46,7 +41,7 @@ def upload_champion_to_gcs(model_path: Path, metadata_path: Path) -> dict:
         bucket.blob(model_obj).upload_from_filename(str(model_path))
         bucket.blob(metadata_obj).upload_from_filename(str(metadata_path))
 
-        # Upload optionnel de test_metrics.json s'il existe
+        # test_metrics.json n'existe pas toujours, on l'envoie si présent
         test_metrics_path = model_path.parent / "test_metrics.json"
         if test_metrics_path.exists():
             bucket.blob("models/test_metrics.json").upload_from_filename(str(test_metrics_path))
@@ -57,7 +52,7 @@ def upload_champion_to_gcs(model_path: Path, metadata_path: Path) -> dict:
             or validation_sort_key(metadata["validation_metrics"]) < validation_sort_key(current_champion_metrics)
         )
         if promotes_global_champion:
-            # Pointeur global vers le dernier modèle validé : toujours écrasé (ce n'est pas un artefact versionné).
+            # champion.json n'est pas versionné, on l'écrase directement
             bucket.blob("models/champion.json").upload_from_string(
                 json.dumps(
                     {
@@ -78,6 +73,5 @@ def upload_champion_to_gcs(model_path: Path, metadata_path: Path) -> dict:
             "global_champion_updated": promotes_global_champion,
         }
     except Exception as exc:
-        # On ne fait jamais échouer le pipeline pour un problème d'upload d'artefact :
-        # l'échec est renvoyé dans le statut plutôt que propagé.
+        # on ne casse jamais le pipeline pour un souci d'upload, on renvoie juste l'erreur
         return {"status": "failed", "reason": str(exc), "bucket": bucket_name}

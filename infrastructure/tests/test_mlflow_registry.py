@@ -13,10 +13,8 @@ def _write_model_files(tmp_path, validation_metrics: dict, version: str):
     import joblib
 
     tmp_path.mkdir(parents=True, exist_ok=True)
-    # build_model_pipeline (imputer + scaler), pas un estimateur nu : c'est ce
-    # pipeline-là que train.py/register.py enregistrent réellement, et c'est
-    # lui qui déclenche le rejet skops ("untrusted types: numpy.dtype") qu'un
-    # LogisticRegression nu ne reproduit pas.
+    # on utilise le vrai pipeline (imputer + scaler), pas un modèle nu :
+    # c'est lui qui fait planter skops, un LogisticRegression seul ne le reproduit pas
     rng = np.random.default_rng(0)
     X = rng.random((20, 3))
     y = (X[:, 0] > 0.5).astype(int)
@@ -37,12 +35,8 @@ def _write_model_files(tmp_path, validation_metrics: dict, version: str):
     return model_path, metadata_path
 
 
-# Régression reproduite en production le 2026-09-05 : chaque exécution enregistrait
-# une nouvelle version MLflow sans jamais marquer laquelle est réellement la
-# championne, et le registre local/GCS pouvait de la même façon régresser vers un
-# modèle moins bon. Vérifie que l'alias "champion" (models:/<name>@champion) ne se
-# déplace que vers une version réellement meilleure, sur un vrai backend MLflow
-# (sqlite local), sans mock.
+# même bug que pour GCS/le registre local : l'alias "champion" ne doit bouger
+# que vers une version réellement meilleure. Testé sur un vrai MLflow (sqlite), sans mock.
 def test_mlflow_champion_alias_never_regresses_to_a_worse_version(tmp_path, monkeypatch):
     monkeypatch.setenv("MLFLOW_TRACKING_URI", f"sqlite:///{tmp_path}/mlflow.db")
     monkeypatch.setenv("MLFLOW_MODEL_NAME", "predictmaint-fd001-test")
@@ -66,11 +60,8 @@ def test_mlflow_champion_alias_never_regresses_to_a_worse_version(tmp_path, monk
     assert str(champion.version) == good_result["registered_version"]
 
 
-# Bug distinct constaté en production le 2026-09-05 : mlflow.sklearn.log_model
-# utilise le format "skops" par défaut (MLflow >= 3), qui rejette les pipelines
-# du projet ("Untrusted types found in the file: ['numpy.dtype']"). L'échec
-# était silencieusement avalé (status "failed"), donc jamais aucun modèle
-# n'était réellement enregistré dans MLflow.
+# vérifie que l'enregistrement marche vraiment avec le pipeline du projet
+# (avant le fix cloudpickle, ça échouait silencieusement à chaque fois)
 def test_register_mlflow_succeeds_with_the_real_project_pipeline(tmp_path, monkeypatch):
     monkeypatch.setenv("MLFLOW_TRACKING_URI", f"sqlite:///{tmp_path}/mlflow.db")
     monkeypatch.setenv("MLFLOW_MODEL_NAME", "predictmaint-fd001-test-2")

@@ -291,6 +291,16 @@ Orchestration des services :
   via `gcloud scheduler jobs`, pas de code applicatif associé.
 - Cloud Build GCP (`cloudbuild.yaml`)
 
+**Service MLflow (`predictmaint-mlflow`)** : provisionné manuellement (pas de
+step de déploiement dans `deploy.yml`), configuré avec `--memory 2Gi
+--min-instances 1 --max-instances 1`. Le backend (`sqlite:////mlflow/mlflow.db`)
+et les artefacts sont stockés sur le disque local du conteneur, non partagés
+entre instances : une seule instance mémoire-suffisante est donc nécessaire
+pour que l'historique des runs et des modèles enregistrés survive dans le
+temps. Avec la limite par défaut (1Gi), le conteneur était tué pour
+dépassement mémoire à chaque enregistrement de modèle, ce qui réinitialisait
+silencieusement toute la base à chaque redémarrage — corrigé le 2026-09-05.
+
 ---
 
 ## Flux de données complet
