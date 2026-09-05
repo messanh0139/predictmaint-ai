@@ -1,0 +1,118 @@
+import json
+import sys
+import types
+from unittest.mock import MagicMock
+
+import pytest
+
+from src.storage.model_artifacts import upload_champion_to_gcs
+
+
+class _FakeBlob:
+    def __init__(self, store: dict, name: str):
+        self._store = store
+        self._name = name
+
+    def exists(self) -> bool:
+        return self._name in self._store
+
+    def download_as_text(self) -> str:
+        return self._store[self._name]
+
+    def upload_from_filename(self, path: str) -> None:
+        self._store[self._name] = open(path, encoding="utf-8").read()
+
+    def upload_from_string(self, data: str, content_type: str | None = None) -> None:
+        self._store[self._name] = data
+
+
+class _FakeBucket:
+    def __init__(self, store: dict):
+        self._store = store
+
+    def blob(self, name: str) -> _FakeBlob:
+        return _FakeBlob(self._store, name)
+
+
+def _install_fake_gcs(monkeypatch, store: dict) -> None:
+    fake_bucket = _FakeBucket(store)
+    fake_client = MagicMock()
+    fake_client.bucket.return_value = fake_bucket
+    fake_storage_module = types.SimpleNamespace(Client=MagicMock(return_value=fake_client))
+    fake_google_cloud = types.SimpleNamespace(storage=fake_storage_module)
+    monkeypatch.setitem(sys.modules, "google.cloud", fake_google_cloud)
+    monkeypatch.setitem(sys.modules, "google.cloud.storage", fake_storage_module)
+
+
+def _write_model_files(tmp_path, validation_metrics: dict, version: str):
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    model_path = tmp_path / "model.joblib"
+    model_path.write_bytes(b"fake-model")
+    metadata_path = tmp_path / "model_metadata.json"
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "model_version": version,
+                "model_name": "xgboost_optimized",
+                "validation_metrics": validation_metrics,
+            }
+        ),
+        encoding="utf-8",
+    )
+    return model_path, metadata_path
+
+
+GOOD_METRICS = {"recall": 1.0, "pr_auc": 0.95, "business_cost_per_1000": 50000.0, "brier": 0.03}
+WORSE_METRICS = {"recall": 0.98, "pr_auc": 0.94, "business_cost_per_1000": 90000.0, "brier": 0.04}
+
+
+@pytest.fixture(autouse=True)
+def _set_bucket_env(monkeypatch):
+    monkeypatch.setenv("MODEL_ARTIFACT_BUCKET", "fake-bucket")
+
+
+def test_first_upload_with_no_existing_champion_sets_the_pointer(tmp_path, monkeypatch):
+    store: dict = {}
+    _install_fake_gcs(monkeypatch, store)
+    model_path, metadata_path = _write_model_files(tmp_path, GOOD_METRICS, "v1")
+
+    result = upload_champion_to_gcs(model_path, metadata_path)
+
+    assert result["status"] == "uploaded"
+    assert result["global_champion_updated"] is True
+    assert json.loads(store["models/champion.json"])["model_version"] == "v1"
+
+
+def test_worse_candidate_never_overwrites_a_better_gcs_champion(tmp_path, monkeypatch):
+    # Régression reproduite en production le 2026-09-05 : une exécution dont le
+    # candidat ne bat pas sa propre baseline ne doit jamais écraser un champion
+    # antérieur meilleur (comparaison globale, pas seulement intra-run).
+    store: dict = {}
+    _install_fake_gcs(monkeypatch, store)
+
+    good_model_path, good_metadata_path = _write_model_files(tmp_path / "good", GOOD_METRICS, "v-good")
+    upload_champion_to_gcs(good_model_path, good_metadata_path)
+    assert json.loads(store["models/champion.json"])["model_version"] == "v-good"
+
+    worse_model_path, worse_metadata_path = _write_model_files(tmp_path / "worse", WORSE_METRICS, "v-worse")
+    result = upload_champion_to_gcs(worse_model_path, worse_metadata_path)
+
+    assert result["status"] == "uploaded"
+    assert result["global_champion_updated"] is False
+    # L'artefact versionné est bien publié (traçabilité), mais le pointeur global reste inchangé.
+    assert "models/v-worse/model.joblib" in store
+    assert json.loads(store["models/champion.json"])["model_version"] == "v-good"
+
+
+def test_better_candidate_does_overwrite_the_gcs_champion(tmp_path, monkeypatch):
+    store: dict = {}
+    _install_fake_gcs(monkeypatch, store)
+
+    worse_model_path, worse_metadata_path = _write_model_files(tmp_path / "worse", WORSE_METRICS, "v-worse")
+    upload_champion_to_gcs(worse_model_path, worse_metadata_path)
+
+    good_model_path, good_metadata_path = _write_model_files(tmp_path / "good", GOOD_METRICS, "v-good")
+    result = upload_champion_to_gcs(good_model_path, good_metadata_path)
+
+    assert result["global_champion_updated"] is True
+    assert json.loads(store["models/champion.json"])["model_version"] == "v-good"

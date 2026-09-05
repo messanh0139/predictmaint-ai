@@ -281,7 +281,14 @@ Orchestration des services :
 - `Dockerfile.grafana` : Image Grafana personnalisée
 
 #### CI/CD
-- GitHub Actions (`.github/workflows/`)
+- GitHub Actions (`.github/workflows/`) : build, retrain, garde-fous qualité
+  et déploiement à chaque push sur `main`.
+- Cloud Scheduler (`predictmaint-retrain-daily`, région `europe-west1`) :
+  exécute directement le job Cloud Run `predictmaint-retrain` tous les jours
+  à 3h (heure de Paris), indépendamment de tout push de code — c'est ce qui
+  ferme la boucle de feedback de production (prédictions/feedback accumulés
+  via l'API, repris automatiquement au réentraînement suivant). Provisionné
+  via `gcloud scheduler jobs`, pas de code applicatif associé.
 - Cloud Build GCP (`cloudbuild.yaml`)
 
 ---
