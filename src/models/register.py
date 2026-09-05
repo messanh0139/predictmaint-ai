@@ -73,7 +73,7 @@ def register_local_model(
 
 
 def _current_mlflow_champion_metrics(client, model_registry_name: str) -> dict | None:
-    # récupère les métriques de la version aliasée "champion", ou None si pas encore d'alias
+    # récupère les métriques de la version marquée "champion", ou None s'il n'y en a pas encore
     try:
         champion_version = client.get_model_version_by_alias(model_registry_name, "champion")
         return json.loads(champion_version.tags["validation_metrics_json"])
@@ -82,7 +82,7 @@ def _current_mlflow_champion_metrics(client, model_registry_name: str) -> dict |
 
 
 def register_mlflow(model_path: Path, metadata_path: Path) -> dict:
-    # Enregistre une nouvelle version dans MLflow (si installé). L'alias
+    # Enregistre une nouvelle version dans MLflow. L'alias
     # "champion" ne bouge que si cette version est vraiment meilleure.
     try:
         import mlflow

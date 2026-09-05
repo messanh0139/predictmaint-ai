@@ -121,21 +121,14 @@ def generate_demo_dataset(
 
 
 def main():
-    print("=" * 70)
-    print("GÉNÉRATION DE DONNÉES DE DÉMONSTRATION AVEC DRIFT")
-    print("=" * 70)
-    print()
+    # point d'entrée CLI : génère le dataset de démo et l'écrit sur disque
+    print("Génération de données de démonstration avec drift")
 
     # Configuration
     NUM_ENGINES = 30
     DRIFT_TYPE = "gradual"  # Options: "none", "gradual", "sudden"
 
-    print(f"Configuration :")
-    print(f"  - Nombre de moteurs    : {NUM_ENGINES}")
-    print(f"  - Cycles par moteur    : 50-150 (aléatoire)")
-    print(f"  - Type de drift        : {DRIFT_TYPE}")
-    print(f"  - Drift range          : 0% à 40% (progressif)")
-    print()
+    print(f"Configuration : {NUM_ENGINES} moteurs, drift {DRIFT_TYPE} de 0% à 40%, 50-150 cycles/moteur")
 
     # Génération
     print("Génération en cours...")
@@ -146,13 +139,9 @@ def main():
     )
 
     # Statistiques
-    print()
-    print("Statistiques :")
-    print(f"  - Lignes totales       : {len(df):,}")
-    print(f"  - Moteurs uniques      : {df['engine_id'].nunique()}")
-    print(f"  - Labels positifs (1)  : {(df['actual_failure_within_30_cycles'] == 1).sum():,} cycles")
-    print(f"  - Labels négatifs (0)  : {(df['actual_failure_within_30_cycles'] == 0).sum():,} cycles")
-    print()
+    print(f"Lignes totales : {len(df):,}, moteurs : {df['engine_id'].nunique()}")
+    print(f"Labels positifs : {(df['actual_failure_within_30_cycles'] == 1).sum():,} cycles")
+    print(f"Labels négatifs : {(df['actual_failure_within_30_cycles'] == 0).sum():,} cycles")
 
     # Analyse du drift (sur les 5 premiers sensors)
     print("Aperçu du drift (moyennes par tranche de moteurs) :")
@@ -163,33 +152,11 @@ def main():
         print(f"  {sensor:10s} : {means.iloc[0]:8.2f} puis {means.iloc[1]:8.2f} puis {means.iloc[2]:8.2f}")
 
     df = df.drop(columns=['engine_batch'])
-    print()
 
     # Sauvegarde
     output_path = Path("demo_data_with_drift.csv")
     df.to_csv(output_path, index=False)
-
-    print("=" * 70)
-    print(f"FICHIER GÉNÉRÉ : {output_path.resolve()}")
-    print("=" * 70)
-    print()
-    print("Utilisation pour la démonstration :")
-    print()
-    print("1. DASHBOARD (Recommandé pour soutenance)")
-    print("   - Ouvrir : https://predictmaint-dashboard-xxx.run.app")
-    print("   - Onglet : Réentraînement automatique")
-    print("   - Upload : demo_data_with_drift.csv")
-    print("   - Observer : Déclenchement automatique + statut temps réel")
-    print()
-    print("2. API directe (via cURL)")
-    print(f'   curl -X POST "https://predictmaint-api-xxx.run.app/retrain/upload" \\')
-    print(f'     -F "file=@{output_path}"')
-    print()
-    print("3. Vérifier Grafana (5-10 min après)")
-    print("   - URL : https://predictmaint-grafana-xxx.run.app")
-    print("   - Dashboard : PredictMaint AI - Cloud Monitoring")
-    print("   - Métriques : drift_psi, drift_share")
-    print()
+    print(f"Fichier généré : {output_path.resolve()}")
 
 
 if __name__ == "__main__":

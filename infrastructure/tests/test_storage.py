@@ -9,32 +9,40 @@ from src.storage.model_artifacts import upload_champion_to_gcs
 
 
 class _FakeBlob:
+    # imite un blob GCS, mais stocke tout dans un simple dict en mémoire
     def __init__(self, store: dict, name: str):
         self._store = store
         self._name = name
 
     def exists(self) -> bool:
+        # vrai si un fichier a déjà été écrit sous ce nom
         return self._name in self._store
 
     def download_as_text(self) -> str:
+        # relit le contenu stocké
         return self._store[self._name]
 
     def upload_from_filename(self, path: str) -> None:
+        # lit un fichier local et le garde en mémoire
         self._store[self._name] = open(path, encoding="utf-8").read()
 
     def upload_from_string(self, data: str, content_type: str | None = None) -> None:
+        # garde le texte donné en mémoire
         self._store[self._name] = data
 
 
 class _FakeBucket:
+    # imite un bucket GCS, renvoie des _FakeBlob liés au même dict
     def __init__(self, store: dict):
         self._store = store
 
     def blob(self, name: str) -> _FakeBlob:
+        # renvoie un blob lié au même dict, comme le ferait un vrai bucket
         return _FakeBlob(self._store, name)
 
 
 def _install_fake_gcs(monkeypatch, store: dict) -> None:
+    # remplace google.cloud.storage par notre fausse implémentation
     fake_bucket = _FakeBucket(store)
     fake_client = MagicMock()
     fake_client.bucket.return_value = fake_bucket
@@ -45,6 +53,7 @@ def _install_fake_gcs(monkeypatch, store: dict) -> None:
 
 
 def _write_model_files(tmp_path, validation_metrics: dict, version: str):
+    # crée un faux model.joblib et son model_metadata.json pour les tests
     tmp_path.mkdir(parents=True, exist_ok=True)
     model_path = tmp_path / "model.joblib"
     model_path.write_bytes(b"fake-model")
@@ -68,10 +77,12 @@ WORSE_METRICS = {"recall": 0.98, "pr_auc": 0.94, "business_cost_per_1000": 90000
 
 @pytest.fixture(autouse=True)
 def _set_bucket_env(monkeypatch):
+    # actif pour tous les tests du fichier : sinon upload_champion_to_gcs se désactive tout seul
     monkeypatch.setenv("MODEL_ARTIFACT_BUCKET", "fake-bucket")
 
 
 def test_first_upload_with_no_existing_champion_sets_the_pointer(tmp_path, monkeypatch):
+    # premier modèle publié -> il devient champion, il n'y a rien à comparer
     store: dict = {}
     _install_fake_gcs(monkeypatch, store)
     model_path, metadata_path = _write_model_files(tmp_path, GOOD_METRICS, "v1")
@@ -103,6 +114,7 @@ def test_worse_candidate_never_overwrites_a_better_gcs_champion(tmp_path, monkey
 
 
 def test_better_candidate_does_overwrite_the_gcs_champion(tmp_path, monkeypatch):
+    # cas normal : un meilleur modèle doit bien remplacer le champion
     store: dict = {}
     _install_fake_gcs(monkeypatch, store)
 

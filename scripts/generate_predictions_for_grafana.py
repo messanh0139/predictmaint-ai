@@ -80,18 +80,13 @@ def send_prediction(api_url: str, engine_id: int, drift_factor: float) -> dict:
 
 
 def main():
+    # point d'entrée CLI : envoie N prédictions à l'API pour peupler Grafana
     parser = argparse.ArgumentParser()
     parser.add_argument("--api-url", default="http://localhost:8001", help="API URL")
     parser.add_argument("--num", type=int, default=50, help="Nombre de prédictions")
     args = parser.parse_args()
 
-    print("=" * 70)
-    print("GÉNÉRATION DE PRÉDICTIONS POUR GRAFANA")
-    print("=" * 70)
-    print(f"API URL    : {args.api_url}")
-    print(f"Prédictions: {args.num}")
-    print("=" * 70)
-    print()
+    print(f"Envoi de {args.num} prédictions vers {args.api_url}")
 
     successes = 0
     failures = 0
@@ -116,17 +111,8 @@ def main():
 
         time.sleep(0.5)  # 0.5 seconde entre prédictions
 
-    print()
-    print("=" * 70)
-    print(f"TERMINÉ : {successes} succès, {failures} échecs")
-    print("=" * 70)
-    print()
-    print("Prochaines étapes :")
-    print("1. Attendez 5-10 minutes (calcul du drift en arrière-plan)")
-    print("2. Ouvrez Grafana : https://predictmaint-grafana-xxx.run.app")
-    print("3. Dashboard : PredictMaint AI - Cloud Monitoring")
-    print("4. Métriques visibles : drift_psi, drift_share")
-    print()
+    print(f"Terminé : {successes} succès, {failures} échecs")
+    print("Le drift apparaît dans Grafana après quelques minutes (dashboard Cloud Monitoring)")
 
 
 if __name__ == "__main__":

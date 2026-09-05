@@ -1,12 +1,7 @@
 #!/usr/bin/env python3
 """
-Injecte de nouvelles données labellisées dans la vraie boucle de feedback de
-production : POST /predict (persiste raw_history sur GCS sous predictions/)
-puis POST /feedback (persiste la vérité terrain sous feedback/). C'est
-exactement ce que consomme automatiquement collect_feedback.py --bucket au
-prochain déclenchement du job Cloud Run de retrain (INCLUDE_PRODUCTION_FEEDBACK=1
-est déjà activé dans le pipeline CI/CD) : aucune écriture directe sur GCS ici,
-tout passe par l'API publique comme le ferait un vrai client.
+Envoie des prédictions puis leur feedback à l'API, comme un vrai client.
+Le prochain retrain les récupère automatiquement (collect_feedback.py).
 
 Usage:
   python scripts/generate_production_feedback.py \
@@ -48,8 +43,7 @@ BASELINE_VALUES = {
 
 
 def build_history(num_cycles: int, failing: bool) -> list[dict]:
-    # Construit une trajectoire de moteur : plate si sain, dégradation
-    # progressive sur les derniers cycles si en fin de vie (comme FD001).
+    # trajectoire plate si le moteur est sain, dégradation progressive sinon
     history = []
     for cycle in range(1, num_cycles + 1):
         progress = cycle / num_cycles
@@ -70,6 +64,7 @@ def build_history(num_cycles: int, failing: bool) -> list[dict]:
 
 
 def main() -> None:
+    # point d'entrée CLI : envoie les prédictions/feedback aux moteurs synthétiques
     parser = argparse.ArgumentParser()
     parser.add_argument("--api-url", required=True, help="URL de l'API de production")
     parser.add_argument("--num", type=int, default=20, help="Nombre de moteurs synthétiques")

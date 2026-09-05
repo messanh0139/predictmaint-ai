@@ -85,6 +85,7 @@ def test_local_registry_never_regresses_champion_to_a_worse_version(tmp_path):
     from src.models.register import register_local_model
 
     def write(name: str, validation_metrics: dict):
+        # crée un faux modèle et ses métadonnées pour une version donnée
         model_path = tmp_path / f"{name}.joblib"
         model_path.write_bytes(b"fake-model")
         metadata_path = tmp_path / f"{name}.json"

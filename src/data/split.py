@@ -26,6 +26,7 @@ def split_by_engine_three_way(
     val_engines = set(engines[n_train + n_cal:].tolist())
 
     def subset(ids: set[int]) -> pd.DataFrame:
+        # extrait les lignes des moteurs donnés, triées par moteur puis cycle
         return (
             df[df[ID_COL].isin(ids)]
             .copy()

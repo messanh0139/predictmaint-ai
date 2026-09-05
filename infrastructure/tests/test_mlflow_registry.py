@@ -10,6 +10,7 @@ WORSE_METRICS = {"recall": 0.98, "pr_auc": 0.94, "business_cost_per_1000": 90000
 
 
 def _write_model_files(tmp_path, validation_metrics: dict, version: str):
+    # crée un vrai model.joblib (pipeline entraîné) et son metadata.json
     import joblib
 
     tmp_path.mkdir(parents=True, exist_ok=True)
