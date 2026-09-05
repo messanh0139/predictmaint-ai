@@ -2,6 +2,7 @@ FROM grafana/grafana:12.1.0
 
 USER root
 COPY infrastructure/monitoring/grafana/dashboards/predictmaint-cloud-monitoring.json /var/lib/grafana/dashboards/predictmaint-cloud-monitoring.json
+COPY infrastructure/monitoring/grafana/dashboards/predictmaint.json /var/lib/grafana/dashboards/predictmaint.json
 COPY infrastructure/monitoring/grafana/provisioning/dashboards/predictmaint.yml /etc/grafana/provisioning/dashboards/predictmaint.yml
 COPY infrastructure/monitoring/grafana/provisioning/datasources/cloud-monitoring.yml.template /etc/grafana/provisioning/datasources/cloud-monitoring.yml.template
 COPY infrastructure/deployment/gcp/grafana-entrypoint.sh /entrypoint.sh

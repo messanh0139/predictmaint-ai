@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import logging
+import os
 import time
+import uuid
 from typing import Iterable
 
 import google.auth
@@ -15,7 +17,11 @@ logger = logging.getLogger("predictmaint.cloud_monitoring")
 METRIC_PREFIX = "custom.googleapis.com/predictmaint/"
 NAMESPACE = "predictmaint"
 JOB = "api"
-TASK_ID = "api"
+# Doit être unique par instance : plusieurs instances Cloud Run qui écrivent sous
+# le même task_id se font rejeter par Cloud Monitoring (points trop rapprochés
+# pour une même ressource). os.getpid() suffit à distinguer les instances d'un
+# même conteneur ; un suffixe aléatoire couvre aussi les redémarrages.
+TASK_ID = f"api-{os.getpid()}-{uuid.uuid4().hex[:8]}"
 
 _client: monitoring.MetricServiceClient | None = None
 _project_id: str | None = None
