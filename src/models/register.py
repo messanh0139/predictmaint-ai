@@ -118,7 +118,12 @@ def register_mlflow(model_path: Path, metadata_path: Path) -> dict:
             for key, value in validation_metrics.items():
                 if isinstance(value, (int, float)):
                     mlflow.log_metric(f"validation_{key}", value)
-            mlflow.sklearn.log_model(model, name="model")
+            # cloudpickle plutôt que le format skops par défaut : skops refuse
+            # de sérialiser certains types internes de nos pipelines (ex.
+            # numpy.dtype) sans liste explicite de types "de confiance". Nos
+            # artefacts sont produits en interne (jamais un fichier externe
+            # non fiable), donc pas de risque réel à utiliser cloudpickle ici.
+            mlflow.sklearn.log_model(model, name="model", serialization_format="cloudpickle")
             model_uri = f"runs:/{run.info.run_id}/model"
             mv = mlflow.register_model(model_uri=model_uri, name=model_registry_name)
 

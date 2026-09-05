@@ -176,7 +176,10 @@ def main() -> None:
                         {"selected_features": features, "threshold": threshold},
                         "model_contract.json",
                     )
-                    mlflow.sklearn.log_model(model, name="model")
+                    # cloudpickle plutôt que le format skops par défaut : skops
+                    # refuse certains types internes de nos pipelines (ex.
+                    # numpy.dtype) sans liste explicite de types de confiance.
+                    mlflow.sklearn.log_model(model, name="model", serialization_format="cloudpickle")
             except Exception as exc:
                 print(f"MLflow tracking warning ({name}): {exc}")
 
