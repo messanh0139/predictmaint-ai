@@ -54,7 +54,7 @@ def upload_champion_to_gcs(model_path: Path, metadata_path: Path) -> dict:
         current_champion_metrics = _current_gcs_champion_metrics(bucket)
         promotes_global_champion = (
             current_champion_metrics is None
-            or validation_sort_key(metadata["validation_metrics"]) <= validation_sort_key(current_champion_metrics)
+            or validation_sort_key(metadata["validation_metrics"]) < validation_sort_key(current_champion_metrics)
         )
         if promotes_global_champion:
             # Pointeur global vers le dernier modèle validé : toujours écrasé (ce n'est pas un artefact versionné).

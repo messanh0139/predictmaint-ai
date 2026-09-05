@@ -8,6 +8,7 @@ from pathlib import Path
 import joblib
 
 from src.config import MODELS_DIR
+from src.models.common import validation_sort_key
 from src.storage.model_artifacts import upload_champion_to_gcs
 from src.utils.fingerprints import sha256_file
 
@@ -50,24 +51,56 @@ def register_local_model(
         index = json.loads(index_path.read_text(encoding="utf-8"))
     else:
         index = {"champion": None, "versions": []}
-    # Remplace une éventuelle entrée existante pour cette version avant de la rajouter,
-    # puis désigne cette version comme le champion courant.
+    # Remplace une éventuelle entrée existante pour cette version avant de la rajouter.
     index["versions"] = [x for x in index.get("versions", []) if x.get("version") != version]
     index["versions"].append(entry)
-    index["champion"] = version
+
+    # Ne désigne cette version comme champion local que si elle bat réellement
+    # le champion actuel (même règle que le pointeur GCS) : une exécution dont
+    # le candidat ne dépasse pas sa propre baseline ne doit jamais régresser un
+    # champion antérieur meilleur.
+    current_champion_entry = next(
+        (x for x in index["versions"] if x.get("version") == index.get("champion")), None
+    )
+    current_champion_metrics = (
+        current_champion_entry.get("validation_metrics") if current_champion_entry else None
+    )
+    promotes_local_champion = (
+        current_champion_metrics is None
+        or validation_sort_key(entry["validation_metrics"]) < validation_sort_key(current_champion_metrics)
+    )
+    if promotes_local_champion:
+        index["champion"] = version
     index_path.write_text(json.dumps(index, indent=2, ensure_ascii=False), encoding="utf-8")
+    entry["local_champion_updated"] = promotes_local_champion
     return entry
 
 
+def _current_mlflow_champion_metrics(client, model_registry_name: str) -> dict | None:
+    # Lit les validation_metrics de la version actuellement aliasée "champion",
+    # ou None si l'alias n'existe pas encore (premier enregistrement).
+    try:
+        champion_version = client.get_model_version_by_alias(model_registry_name, "champion")
+        return json.loads(champion_version.tags["validation_metrics_json"])
+    except Exception:
+        return None
+
+
 def register_mlflow(model_path: Path, metadata_path: Path) -> dict:
-    # Enregistre le champion dans MLflow si la dépendance est disponible
+    # Enregistre une nouvelle version dans le registre MLflow si la dépendance
+    # est disponible. Chaque run crée une version (traçabilité complète), mais
+    # l'alias "champion" (models:/<name>@champion) n'est déplacé que si cette
+    # version bat réellement l'actuel champion MLflow — même règle que pour le
+    # pointeur GCS et le registre local, pour ne jamais régresser silencieusement.
     try:
         import mlflow
         import mlflow.sklearn
+        from mlflow.tracking import MlflowClient
     except Exception as exc:
         return {"status": "skipped", "reason": f"mlflow unavailable: {exc}"}
 
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    validation_metrics = metadata.get("validation_metrics", {})
     tracking_uri = os.getenv("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db")
     model_registry_name = os.getenv("MLFLOW_MODEL_NAME", "predictmaint-fd001")
     try:
@@ -82,18 +115,34 @@ def register_mlflow(model_path: Path, metadata_path: Path) -> dict:
                     "dataset_manifest_sha256": metadata.get("dataset_manifest_sha256", ""),
                 }
             )
-            for key, value in metadata.get("validation_metrics", {}).items():
+            for key, value in validation_metrics.items():
                 if isinstance(value, (int, float)):
                     mlflow.log_metric(f"validation_{key}", value)
             mlflow.sklearn.log_model(model, name="model")
             model_uri = f"runs:/{run.info.run_id}/model"
             mv = mlflow.register_model(model_uri=model_uri, name=model_registry_name)
+
+        client = MlflowClient()
+        client.set_model_version_tag(
+            model_registry_name, mv.version, "validation_metrics_json", json.dumps(validation_metrics)
+        )
+        client.set_model_version_tag(model_registry_name, mv.version, "model_version", metadata["model_version"])
+
+        current_champion_metrics = _current_mlflow_champion_metrics(client, model_registry_name)
+        promotes_registry_champion = (
+            current_champion_metrics is None
+            or validation_sort_key(validation_metrics) < validation_sort_key(current_champion_metrics)
+        )
+        if promotes_registry_champion:
+            client.set_registered_model_alias(model_registry_name, "champion", mv.version)
+
         return {
             "status": "registered",
             "tracking_uri": tracking_uri,
             "registry_name": model_registry_name,
             "registered_version": str(mv.version),
             "run_id": run.info.run_id,
+            "registry_champion_updated": promotes_registry_champion,
         }
     except Exception as exc:
         return {"status": "failed", "reason": str(exc), "tracking_uri": tracking_uri}

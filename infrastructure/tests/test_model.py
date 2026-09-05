@@ -76,3 +76,43 @@ def test_local_registry_is_versioned_and_hashes_artifact(tmp_path):
     assert entry["version"] == "v-test"
     assert len(entry["model_sha256"]) == 64
     assert (tmp_path / "registry" / "v-test" / "model.joblib").exists()
+
+
+# Régression reproduite en production le 2026-09-05 : une exécution dont le
+# candidat ne bat pas sa propre baseline ne doit jamais écraser, dans le
+# registre local, un champion antérieur meilleur.
+def test_local_registry_never_regresses_champion_to_a_worse_version(tmp_path):
+    import json
+
+    from src.models.register import register_local_model
+
+    def write(name: str, validation_metrics: dict):
+        model_path = tmp_path / f"{name}.joblib"
+        model_path.write_bytes(b"fake-model")
+        metadata_path = tmp_path / f"{name}.json"
+        metadata_path.write_text(
+            json.dumps(
+                {
+                    "model_version": name,
+                    "model_name": "dummy",
+                    "validation_metrics": validation_metrics,
+                }
+            ),
+            encoding="utf-8",
+        )
+        return model_path, metadata_path
+
+    good_metrics = {"recall": 1.0, "pr_auc": 0.95, "business_cost_per_1000": 50000.0, "brier": 0.03}
+    worse_metrics = {"recall": 0.98, "pr_auc": 0.94, "business_cost_per_1000": 90000.0, "brier": 0.04}
+    registry_dir = tmp_path / "registry"
+
+    good_entry = register_local_model(*write("v-good", good_metrics), registry_dir)
+    assert good_entry["local_champion_updated"] is True
+
+    worse_entry = register_local_model(*write("v-worse", worse_metrics), registry_dir)
+    assert worse_entry["local_champion_updated"] is False
+
+    index = json.loads((registry_dir / "index.json").read_text(encoding="utf-8"))
+    assert index["champion"] == "v-good"
+    # L'artefact moins bon reste tout de même versionné, pour la traçabilité.
+    assert any(v["version"] == "v-worse" for v in index["versions"])
