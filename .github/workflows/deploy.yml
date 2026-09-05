@@ -91,6 +91,8 @@ jobs:
             --tasks 1 \
             --max-retries 0 \
             --task-timeout 3600 \
+            --cpu 2 \
+            --memory 2Gi \
             --quiet
 
       - name: Retrain from production feedback and enforce quality gate
