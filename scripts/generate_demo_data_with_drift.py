@@ -134,7 +134,7 @@ def main():
     print(f"  - Nombre de moteurs    : {NUM_ENGINES}")
     print(f"  - Cycles par moteur    : 50-150 (aléatoire)")
     print(f"  - Type de drift        : {DRIFT_TYPE}")
-    print(f"  - Drift range          : 0% → 40% (progressif)")
+    print(f"  - Drift range          : 0% à 40% (progressif)")
     print()
 
     # Génération
@@ -160,7 +160,7 @@ def main():
 
     for sensor in ['sensor_1', 'sensor_2', 'sensor_3']:
         means = df.groupby('engine_batch')[sensor].mean()
-        print(f"  {sensor:10s} : {means.iloc[0]:8.2f} → {means.iloc[1]:8.2f} → {means.iloc[2]:8.2f}")
+        print(f"  {sensor:10s} : {means.iloc[0]:8.2f} puis {means.iloc[1]:8.2f} puis {means.iloc[2]:8.2f}")
 
     df = df.drop(columns=['engine_batch'])
     print()

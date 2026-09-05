@@ -60,14 +60,14 @@ Infrastructure serverless scalable, hautement disponible et économique pour la 
 └──────────────────────┬─────────────────────────────────────┘
                        │
         ┌──────────────┼──────────────┐
-        ▼              ▼              ▼
+        |              |              |
     ┌───────┐    ┌──────────┐   ┌──────────┐
     │ Tests │    │ Retrain  │   │  Deploy  │
-    │ & QA  │───→│   Job    │──→│ Services │
+    │ & QA  │ puis│   Job    │puis│ Services │
     └───────┘    └──────────┘   └──────────┘
                        │
         ┌──────────────┼──────────────┐
-        ▼              ▼              ▼
+        |              |              |
 ┌──────────────┐ ┌──────────┐ ┌──────────────┐
 │ Cloud Run    │ │   GCS    │ │  Cloud Run   │
 │ Job          │ │ Buckets  │ │  Services    │

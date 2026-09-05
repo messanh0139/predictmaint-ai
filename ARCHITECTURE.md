@@ -10,33 +10,33 @@ Le système repose sur trois pipelines fonctionnels orchestrés par Apache Airfl
 ┌─────────────────────────────────────────────────────────────────┐
 │                     PIPELINE 1: ETL/INGESTION                   │
 │                                                                  │
-│  Sources → MongoDB/Data Lake → Transformation → PostgreSQL      │
+│  Sources puis MongoDB/Data Lake puis Transformation puis PostgreSQL│
 │                     (brut)                             (propre)  │
 └─────────────────────────────────────────────────────────────────┘
-                              ↓
+                              |
                      Apache Airflow Orchestration
-                              ↓
+                              |
 ┌─────────────────────────────────────────────────────────────────┐
 │                  PIPELINE 2: TRAINING & MLOPS                   │
 │                                                                  │
-│  PostgreSQL → Experimentation (3+ modèles) → Optimisation       │
-│             → Tracking MLflow → Stockage GCP                     │
+│  PostgreSQL puis Experimentation (3+ modèles) puis Optimisation │
+│             puis Tracking MLflow puis Stockage GCP              │
 └─────────────────────────────────────────────────────────────────┘
-                              ↓
+                              |
                      Modèle Champion
-                              ↓
+                              |
 ┌─────────────────────────────────────────────────────────────────┐
 │              PIPELINE 3: INFERENCE & INTERFACE                  │
 │                                                                  │
-│  FastAPI (Backend) ←→ React (Frontend)                          │
-│       ↓                                                          │
+│  FastAPI (Backend) avec React (Frontend)                        │
+│       |                                                          │
 │  GCP Storage (Modèle optimal)                                   │
 └─────────────────────────────────────────────────────────────────┘
-                              ↓
+                              |
 ┌─────────────────────────────────────────────────────────────────┐
 │                  SUPERVISION & MONITORING                       │
 │                                                                  │
-│  cAdvisor → Prometheus → Grafana                                │
+│  cAdvisor puis Prometheus puis Grafana                          │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -344,7 +344,7 @@ Orchestration des services :
 | Dashboard React | 3000 | Interface utilisateur |
 | Airflow Webserver | 8080 | UI Airflow |
 | Prometheus | 9090 | Métriques monitoring |
-| Grafana | 3000 | Dashboards visualisation |
+| Grafana | 3001 | Dashboards visualisation |
 | cAdvisor | 8082 | Métriques conteneurs |
 
 ---

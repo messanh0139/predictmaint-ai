@@ -109,10 +109,10 @@ def main():
             successes += 1
             pred_id = result["data"]["prediction_id"][:8]
             risk = result["data"]["risk"]
-            print(f"[{i+1:3d}/{args.num}] ✓ {pred_id}... | Risk: {risk:4s} | Drift: {drift_factor:5.1%}")
+            print(f"[{i+1:3d}/{args.num}] OK {pred_id}... | Risk: {risk:4s} | Drift: {drift_factor:5.1%}")
         else:
             failures += 1
-            print(f"[{i+1:3d}/{args.num}] ✗ Erreur: {result['error']}")
+            print(f"[{i+1:3d}/{args.num}] ERREUR: {result['error']}")
 
         time.sleep(0.5)  # 0.5 seconde entre prédictions
 

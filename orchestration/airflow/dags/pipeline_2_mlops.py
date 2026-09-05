@@ -43,13 +43,13 @@ def extract_from_postgresql(**context):
 
 
 def run_complete_retrain(**context):
-    # Pipeline complet de réentraînement avec optimisation (modernisé)
+    # Pipeline complet de réentraînement avec optimisation
     import os
     print("Démarrage du pipeline complet avec optimisation")
 
     # Configuration environnement
     os.environ['INCLUDE_PRODUCTION_FEEDBACK'] = os.getenv('INCLUDE_PRODUCTION_FEEDBACK', '1')
-    os.environ['MLFLOW_TRACKING_URI'] = os.getenv('MLFLOW_TRACKING_URI', 'sqlite:///storage/mlflow.db')
+    os.environ['MLFLOW_TRACKING_URI'] = os.getenv('MLFLOW_TRACKING_URI', 'http://mlflow:5000')
 
     # Exécution pipeline unifié avec optimisation (30 trials Optuna)
     retrain_pipeline(optimize=True, trials=30)

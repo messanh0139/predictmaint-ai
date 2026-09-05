@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
+from pymongo import MongoClient
+from sqlalchemy import create_engine
 
 from src.config import (
     ID_COL,
@@ -22,14 +25,52 @@ from src.data.validate import validate_raw
 from src.features.build_features import build_causal_features
 from src.utils.fingerprints import canonical_json_sha256, sha256_file
 
+logger = logging.getLogger(__name__)
+
+USE_DATABASES = os.getenv("USE_DATABASES", "0") == "1"
+
+
+def _load_raw_from_mongodb() -> pd.DataFrame:
+    """Charge les données depuis MongoDB"""
+    mongo_url = os.getenv("MONGODB_URL", "mongodb://admin:admin123@mongodb:27017/")
+    client = MongoClient(mongo_url)
+    db = client["predictmaint"]
+
+    logger.info("Lecture des données brutes depuis MongoDB")
+    cursor = db["train_raw"].find({}, {"_id": 0})
+    data = list(cursor)
+    client.close()
+
+    if not data:
+        logger.warning("Collection MongoDB train_raw vide, fallback sur CSV")
+        return load_train_fd001()
+
+    df = pd.DataFrame(data)
+    logger.info(f"{len(df)} lignes chargées depuis MongoDB")
+    return df
+
+
+def _save_to_postgresql(train_features: pd.DataFrame, calibration_features: pd.DataFrame, val_features: pd.DataFrame) -> None:
+    """Sauvegarde les features dans PostgreSQL"""
+    db_url = os.getenv("POSTGRESQL_URL", "postgresql://postgres:postgres@postgresql:5432/predictmaint")
+    engine = create_engine(db_url)
+
+    logger.info("Sauvegarde des features dans PostgreSQL")
+    train_features.to_sql("train_features", engine, if_exists="replace", index=False, method="multi", chunksize=1000)
+    calibration_features.to_sql("calibration_features", engine, if_exists="replace", index=False, method="multi", chunksize=1000)
+    val_features.to_sql("val_features", engine, if_exists="replace", index=False, method="multi", chunksize=1000)
+
+    logger.info(f"Sauvegarde terminée: {len(train_features)} train, {len(calibration_features)} calibration, {len(val_features)} validation")
+    engine.dispose()
+
 
 def _positive_rate(df: pd.DataFrame) -> float:
-    # Proportion de lignes en classe positive (panne imminente), pour le manifeste
+    """Proportion de lignes en classe positive"""
     return float(df[TARGET_COL].mean())
 
 
 def load_supplemental_features(path: Path, columns) -> pd.DataFrame:
-    # Charge le lot optionnel de features de production (feedback ou upload direct)
+    """Charge les features de production optionnelles"""
     if not path.exists() or path.stat().st_size == 0:
         return pd.DataFrame()
     try:
@@ -43,21 +84,23 @@ def load_supplemental_features(path: Path, columns) -> pd.DataFrame:
 
 
 def main() -> None:
-    # Prépare uniquement les partitions de développement
+    """Prépare les partitions de développement"""
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     REFERENCE_DIR.mkdir(parents=True, exist_ok=True)
 
-    raw_train = load_train_fd001()
+    if USE_DATABASES:
+        logger.info("Mode USE_DATABASES activé: lecture depuis MongoDB")
+        raw_train = _load_raw_from_mongodb()
+    else:
+        logger.info("Mode standard: lecture depuis CSV")
+        raw_train = load_train_fd001()
+
     train_quality = validate_raw(raw_train)
 
-    # Opération de labellisation : RUL/max-cycle servent uniquement à construire y.
     labelled_train = add_train_targets(raw_train)
 
-    # Etape critique anti-leakage : séparation PAR MOTEUR avant feature engineering
-    # et avant toute statistique supervisée utilisée pour prendre une décision.
     train_raw, calibration_raw, val_raw = split_by_engine_three_way(labelled_train)
 
-    # Features causales, calculées séparément par partition.
     train_features = build_causal_features(train_raw)
     calibration_features = build_causal_features(calibration_raw)
     val_features = build_causal_features(val_raw)
@@ -71,13 +114,12 @@ def main() -> None:
         if not supplemental.empty:
             production_engines = set(supplemental[ID_COL].unique())
 
-            # On filtre les moteurs de validation/calibration pour éviter les fuites de données
             forbidden = set(val_raw[ID_COL].unique()) | set(calibration_raw[ID_COL].unique())
             overlap = production_engines & forbidden
 
             if overlap:
                 print(
-                    f"Attention: {len(overlap)} moteurs du feedback sont aussi dans validation/calibration: "
+                    f"{len(overlap)} moteurs du feedback sont aussi dans validation/calibration: "
                     f"{sorted(overlap)[:5]}{'...' if len(overlap) > 5 else ''}"
                 )
                 print("Ces moteurs sont retirés pour éviter les fuites de données.")
@@ -94,14 +136,14 @@ def main() -> None:
     calibration_features.to_csv(PROCESSED_DIR / "calibration_features.csv", index=False)
     val_features.to_csv(PROCESSED_DIR / "val_features.csv", index=False)
 
-    # Supprime un ancien artefact éventuel afin d'éviter de croire que le holdout
-    # fait partie du pipeline standard.
+    if USE_DATABASES:
+        logger.info("Sauvegarde des features dans PostgreSQL")
+        _save_to_postgresql(train_features, calibration_features, val_features)
+
     legacy_test_features = PROCESSED_DIR / "test_features.csv"
     if legacy_test_features.exists():
         legacy_test_features.unlink()
 
-    # Echantillon de référence (features uniquement, sans ID/cible) pour le monitoring
-    # de dérive en production : taille plafonnée à 5000 lignes, seed fixe pour la reproductibilité.
     reference_cols = [
         c for c in train_features.columns if c not in {ID_COL, TARGET_COL, RUL_COL}
     ]
@@ -109,7 +151,6 @@ def main() -> None:
         min(5000, len(train_features)), random_state=42
     ).to_csv(REFERENCE_DIR / "reference_features.csv", index=False)
 
-    # Garde-fou anti-fuite : un même moteur ne doit apparaître que dans une seule partition.
     train_engines = set(map(int, train_raw[ID_COL].unique()))
     calibration_engines = set(map(int, calibration_raw[ID_COL].unique()))
     val_engines = set(map(int, val_raw[ID_COL].unique()))
@@ -121,7 +162,6 @@ def main() -> None:
     if overlap:
         raise RuntimeError(f"Data leakage: moteurs communs entre partitions: {overlap}")
 
-    # Les fichiers externes sont fingerprintés sans être ouverts/interprétés.
     raw_fingerprints = {
         name: sha256_file(RAW_DIR / name)
         for name in ["train_FD001.txt", "test_FD001.txt", "RUL_FD001.txt"]

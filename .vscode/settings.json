@@ -1,0 +1,31 @@
+{
+  // Configuration VS Code pour le projet
+
+  // Utiliser l'environnement virtuel du projet
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+
+  // Désactiver les linters par défaut (on utilise ruff)
+  "python.linting.enabled": false,
+  "python.linting.pylintEnabled": false,
+  "python.linting.flake8Enabled": false,
+
+  // Configuration ruff (linter moderne et rapide)
+  "ruff.enable": true,
+  "ruff.lint.enable": true,
+  "ruff.fixAll": false,
+
+  // Désactiver le formatage automatique
+  "editor.formatOnSave": false,
+
+  // Niveau de diagnostic Python
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportMissingImports": "none",
+    "reportUnusedImport": "none",
+    "reportUnusedVariable": "none",
+    "reportGeneralTypeIssues": "none"
+  },
+
+  // Désactiver les suggestions intrusives
+  "python.analysis.typeCheckingMode": "off",
+  "python-envs.pythonProjects": []
+}

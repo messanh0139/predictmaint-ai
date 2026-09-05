@@ -2,6 +2,10 @@ version: '3.8'
 
 services:
   # Pipeline 1: ETL/Ingestion
+  # Pour utiliser MongoDB et PostgreSQL, définir USE_DATABASES=1
+  # Mode standard (USE_DATABASES=0): données en CSV dans storage/
+  # Mode complet (USE_DATABASES=1): MongoDB (brut) puis Transformation puis PostgreSQL (propre)
+
   mongodb:
     image: mongo:7.0
     container_name: predictmaint-mongodb
@@ -63,6 +67,7 @@ services:
       - MODEL_PATH=/app/storage/models/production
       - GCP_PROJECT_ID=${GCP_PROJECT_ID}
       - GCP_BUCKET=${GCP_BUCKET}
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
     volumes:
       - ../../storage:/app/storage
     networks:
@@ -70,6 +75,7 @@ services:
     depends_on:
       - postgresql
       - prometheus
+      - mlflow
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s

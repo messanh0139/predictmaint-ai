@@ -301,7 +301,7 @@ cat pipelines/3_inference_ihm/frontend/.env
 cd infrastructure/deployment
 docker-compose down
 
-# Arrêter et supprimer les volumes (⚠️ perte de données)
+# Arrêter et supprimer les volumes (les données seront perdues)
 docker-compose down -v
 ```
 

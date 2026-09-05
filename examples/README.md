@@ -57,7 +57,7 @@ curl -X POST "${API_URL}/predict" \
 }
 ```
 
-**⚠️ Sauvegarder le `prediction_id`** pour soumettre le feedback plus tard !
+Sauvegarde le `prediction_id` pour soumettre le feedback plus tard.
 
 ## 3. Soumettre un feedback
 
@@ -225,7 +225,7 @@ if response.status_code == 200:
     # Sauvegarder l'ID pour feedback ultérieur
     prediction_id = prediction['prediction_id']
 else:
-    print(f"   ❌ Erreur: {response.status_code}")
+    print(f"   Erreur: {response.status_code}")
     print(f"   {response.text}")
     prediction_id = None
 
@@ -292,8 +292,8 @@ while True:
             print(f"  Drift global: {drift:.1%}")
 
             if drift > 0.30:
-                print("  Attention: Drift élevé > 30%")
-                print("  Retraining recommandé")
+                print("  Le drift est élevé (> 30%)")
+                print("  Il faut réentraîner le modèle")
 
     # Attendre 5 minutes
     time.sleep(300)

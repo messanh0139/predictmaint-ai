@@ -1,7 +1,8 @@
-# DAG Pipeline 1 : Extraction, transformation et chargement des données
+"""Pipeline ETL pour extraction, transformation et chargement des données"""
 
 from __future__ import annotations
 
+import importlib.util
 import os
 import sys
 from datetime import datetime, timedelta
@@ -10,13 +11,6 @@ from pathlib import Path
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
-
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
-
-from pipelines.1_etl_ingestion.extraction.load import load_train_fd001
-from pipelines.1_etl_ingestion.loading.load_to_postgresql import PostgreSQLLoader
-from pipelines.1_etl_ingestion.transformation.build_features import build_causal_features
-from pipelines.1_etl_ingestion.transformation.prepare import main as prepare_pipeline
 
 default_args = {
     'owner': 'data-team',
@@ -38,60 +32,60 @@ dag = DAG(
 )
 
 
-def extract_data(**context):
-    # Extraire les données brutes
-    print("Extraction des données")
-    data = load_train_fd001()
-    print(f"{len(data)} enregistrements extraits")
-    return {"records": len(data)}
+def extract_to_mongodb(**context):
+    """Charge les données brutes dans MongoDB"""
+    sys.path.insert(0, str(Path('/opt/airflow')))
 
+    etl_path = Path('/opt/airflow/pipelines/1_etl_ingestion')
 
-def transform_data(**context):
-    # Transformer et nettoyer les données
-    print("Transformation des données")
-    prepare_pipeline()
-    print("Données transformées et sauvegardées")
-    return {"status": "completed"}
+    spec = importlib.util.spec_from_file_location(
+        "load_to_mongodb",
+        etl_path / "loading/load_to_mongodb.py"
+    )
+    mongodb_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mongodb_module)
+    MongoDBLoader = mongodb_module.MongoDBLoader
 
+    spec = importlib.util.spec_from_file_location(
+        "load",
+        etl_path / "extraction/load.py"
+    )
+    load_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(load_module)
+    load_train_fd001 = load_module.load_train_fd001
 
-def load_to_postgresql(**context):
-    # Charger les données dans PostgreSQL
-    print("Chargement PostgreSQL")
-    db_url = os.getenv("POSTGRESQL_URL", "postgresql://user:password@localhost:5432/predictmaint")
+    mongo_url = os.getenv("MONGODB_URL", "mongodb://admin:admin123@mongodb:27017/")
+    loader = MongoDBLoader(mongo_url)
 
-    loader = PostgreSQLLoader(db_url)
-    processed_path = Path("storage/processed/train.csv")
+    train_data = load_train_fd001()
+    count = loader.load_raw_data(train_data, collection_name="train_raw")
+    loader.close()
 
-    if not processed_path.exists():
-        raise FileNotFoundError(f"Fichier non trouvé: {processed_path}")
-
-    count = loader.load_processed_data(processed_path)
-    print(f"{count} enregistrements chargés")
-    return {"loaded_records": count}
+    print(f"MongoDB: {count} documents insérés")
+    return {"count": count}
 
 
 task_extract = PythonOperator(
-    task_id='extract_raw_data',
-    python_callable=extract_data,
+    task_id='extract_to_mongodb',
+    python_callable=extract_to_mongodb,
     dag=dag,
 )
 
-task_transform = PythonOperator(
-    task_id='transform_clean_data',
-    python_callable=transform_data,
-    dag=dag,
-)
-
-task_load = PythonOperator(
-    task_id='load_to_postgresql',
-    python_callable=load_to_postgresql,
+task_prepare = BashOperator(
+    task_id='prepare_transform_load',
+    bash_command='cd /opt/airflow && USE_DATABASES=1 python -m src.data.prepare',
+    env={
+        'USE_DATABASES': '1',
+        'MONGODB_URL': 'mongodb://admin:admin123@mongodb:27017/',
+        'POSTGRESQL_URL': 'postgresql://postgres:postgres@postgresql:5432/predictmaint',
+    },
     dag=dag,
 )
 
 task_validate = BashOperator(
     task_id='validate_pipeline',
-    bash_command='echo "Pipeline ETL terminé"',
+    bash_command='echo "Pipeline ETL terminé - MongoDB puis Transformation puis PostgreSQL"',
     dag=dag,
 )
 
-task_extract >> task_transform >> task_load >> task_validate
+task_extract >> task_prepare >> task_validate
