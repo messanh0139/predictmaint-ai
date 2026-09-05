@@ -1,9 +1,9 @@
-# PredictMaint AI : Maintenance Prédictive MLOps
+# PredictMaint AI — Maintenance Prédictive MLOps
 
 ## Architecture MLOps Professionnelle
 
 Ce projet implémente un système complet de maintenance prédictive suivant les meilleures pratiques MLOps. L'architecture repose sur trois pipelines fonctionnels orchestrés par Apache Airflow, avec un système de monitoring et de déploiement continu en production.
-
+1
 ## Stack Technique Globale
 
 | Composant | Technologies |
@@ -36,7 +36,7 @@ predictmaint-ai/
 │
 ├── orchestration/                       # Orchestration globale
 │   └── airflow/
-│       ├── dags/                        # DAGs Airflow (Pipeline 1 vers 2)
+│       ├── dags/                        # DAGs Airflow (Pipeline 1 → 2)
 │       ├── plugins/                     # Plugins personnalisés
 │       └── config/                      # Configuration Airflow
 │
@@ -80,7 +80,7 @@ predictmaint-ai/
 
 - **Extraction** (`pipelines/1_etl_ingestion/extraction/`): Connexion aux sources externes (APIs, bases transactionnelles, fichiers plats)
 - **Stockage Brut**: Persistance immédiate dans MongoDB ou Data Lake (MinIO/S3) sans transformation
-- **Transformation** (`pipelines/1_etl_ingestion/transformation/`): Scripts Python orchestrés par Airflow pour nettoyage, gestion valeurs manquantes, feature engineering
+- **Transformation** (`src/data/prepare.py`, `src/features/build_features.py`): Scripts Python orchestrés par Airflow pour nettoyage, gestion valeurs manquantes, feature engineering
 - **Chargement** (`pipelines/1_etl_ingestion/loading/`): Injection données tabulaires propres dans PostgreSQL
 
 **DAG Airflow**: `orchestration/airflow/dags/pipeline_1_etl.py`
@@ -90,11 +90,11 @@ predictmaint-ai/
 **Objectif**: Automatiser l'apprentissage itératif, comparer rigoureusement plusieurs modèles et versionner le meilleur artefact.
 
 - **Extraction Data**: Requêtage PostgreSQL pour extraire datasets d'entraînement/test
-- **Expérimentation comparative** (`pipelines/2_training_mlops/experimentation/`):
+- **Expérimentation comparative** (`src/models/train.py`):
   - Entraînement/évaluation d'au moins 3 modèles distincts (Logistic Regression, Random Forest, XGBoost)
-- **Ajustement hyperparamètres** (`pipelines/2_training_mlops/optimization/`):
+- **Ajustement hyperparamètres** (`src/models/optimize.py`):
   - Optimisation fine via Grid Search, Random Search ou Optuna
-- **Tracking & Sélection** (`pipelines/2_training_mlops/registry/`):
+- **Tracking & Sélection** (`src/models/promote.py`, `src/models/register.py`):
   - Enregistrement paramètres, métriques (Accuracy, F1-Score, MSE) via MLflow
   - Sélection automatique du modèle champion
 - **Stockage Model**: Exportation artefact vers GCP Cloud Storage
@@ -117,7 +117,7 @@ predictmaint-ai/
 ### Orchestration globale
 
 **Apache Airflow** (`orchestration/airflow/`) pilote l'enchaînement séquentiel et conditionnel des DAGs:
-- Pipeline 1 (ETL) puis Pipeline 2 (MLOps)
+- Pipeline 1 (ETL) → Pipeline 2 (MLOps)
 - Gestion des erreurs, alertes et relances automatiques
 
 ### Monitoring des conteneurs

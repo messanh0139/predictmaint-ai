@@ -87,7 +87,7 @@ Tous les services doivent être dans l'état `Up` (healthy).
 
 ```bash
 # Exécution manuelle du pipeline
-python pipelines/1_etl_ingestion/transformation/prepare.py
+python -m src.data.prepare
 ```
 
 Ou via Airflow :
@@ -100,14 +100,17 @@ Ou via Airflow :
 **Objectif** : Entraîner des modèles, optimiser et sélectionner le champion.
 
 ```bash
+# Sélection des features (sur TRAIN uniquement)
+python -m src.features.select_features
+
 # Entraînement de base
-python pipelines/2_training_mlops/experimentation/train.py
+python -m src.models.train
 
 # Optimisation hyperparamètres
-python pipelines/2_training_mlops/optimization/optimize.py
+python -m src.models.optimize
 
-# Évaluation sur holdout
-python pipelines/2_training_mlops/experimentation/evaluate.py
+# Évaluation sur holdout (certification externe, hors boucle de retrain)
+python -m src.models.evaluate
 ```
 
 Ou via Airflow :
@@ -208,18 +211,21 @@ Accéder à http://localhost:5000 pour :
 
 ```bash
 # 1. Préparer les données
-python pipelines/1_etl_ingestion/transformation/prepare.py
+python -m src.data.prepare
 
-# 2. Entraîner plusieurs modèles
-python pipelines/2_training_mlops/experimentation/train.py
+# 2. Sélectionner les features (sur TRAIN uniquement)
+python -m src.features.select_features
 
-# 3. Optimiser le meilleur
-python pipelines/2_training_mlops/optimization/optimize.py
+# 3. Entraîner plusieurs modèles
+python -m src.models.train
 
-# 4. Évaluer sur holdout
-python pipelines/2_training_mlops/experimentation/evaluate.py
+# 4. Optimiser le meilleur
+python -m src.models.optimize
 
-# 5. Vérifier dans MLflow
+# 5. Évaluer sur holdout (certification externe, hors boucle de retrain)
+python -m src.models.evaluate
+
+# 6. Vérifier dans MLflow
 open http://localhost:5000
 ```
 
@@ -273,7 +279,7 @@ sudo chown -R $USER:$USER orchestration/airflow/logs/
 ls storage/models/production/
 
 # Lancer un entraînement si nécessaire
-python pipelines/2_training_mlops/experimentation/train.py
+python -m src.models.train
 ```
 
 ### Airflow : DAG non visible

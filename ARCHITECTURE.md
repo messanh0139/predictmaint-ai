@@ -92,7 +92,7 @@ Centraliser la collecte des données brutes, garantir la traçabilité de l'hist
 - Gestion des valeurs manquantes
 - Feature engineering de base
 
-**Localisation** : `pipelines/1_etl_ingestion/transformation/`
+**Localisation** : `src/data/prepare.py`, `src/features/build_features.py`
 
 #### 4. Chargement
 - Injection des données tabulaires propres dans **PostgreSQL**
@@ -131,14 +131,14 @@ Entraînement et évaluation d'au moins **3 modèles distincts** :
 - Random Forest
 - XGBoost / Réseau de Neurones
 
-**Localisation** : `pipelines/2_training_mlops/experimentation/`
+**Localisation** : `src/models/train.py`
 
 #### 3. Ajustement d'hyperparamètres
 - Optimisation fine des performances de chaque modèle
 - Techniques : Grid Search, Random Search, ou Optuna
 - Validation croisée pour robustesse
 
-**Localisation** : `pipelines/2_training_mlops/optimization/`
+**Localisation** : `src/models/optimize.py`
 
 #### 4. Tracking & Sélection
 Enregistrement dans **MLflow** :
@@ -147,7 +147,7 @@ Enregistrement dans **MLflow** :
 - Artefacts versionnés
 - Sélection automatique du modèle champion
 
-**Localisation** : `pipelines/2_training_mlops/registry/`
+**Localisation** : `src/models/promote.py`, `src/models/register.py`
 
 #### 5. Stockage Model
 - Exportation de l'artefact du meilleur modèle validé
