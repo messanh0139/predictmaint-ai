@@ -227,7 +227,7 @@
               "custom.googleapis.com/predictmaint/telemetry_errors_total"
             ],
             "view": "FULL",
-            "perSeriesAligner": "ALIGN_MAX",
+            "perSeriesAligner": "ALIGN_DELTA",
             "crossSeriesReducer": "REDUCE_SUM",
             "alignmentPeriod": "60s",
             "projectName": "predictmaint-ai-4821"
