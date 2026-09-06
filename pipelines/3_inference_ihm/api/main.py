@@ -98,6 +98,11 @@ app.add_middleware(
 PREDICTIONS = Counter("predictmaint_predictions_total", "Nombre de prédictions", ["risk"])
 LATENCY = Histogram("predictmaint_prediction_latency_seconds", "Latence de prédiction")
 TELEMETRY_ERRORS = Counter("predictmaint_telemetry_errors_total", "Erreurs de persistance télémétrie", ["sink"])
+# Un compteur à label n'est exporté qu'après son premier appel à .labels(...) :
+# on déclare les deux valeurs possibles tout de suite pour qu'il parte à 0
+# plutôt que de rester complètement absent tant qu'aucune erreur n'est survenue.
+TELEMETRY_ERRORS.labels(sink="local")
+TELEMETRY_ERRORS.labels(sink="gcs")
 MODEL_READY = Gauge("predictmaint_model_ready", "1 si le modèle est chargé")
 DRIFT_SHARE = Gauge("predictmaint_drift_share", "Part des variables en dérive (PSI >= seuil)")
 DRIFT_PSI = Gauge("predictmaint_drift_psi", "PSI par variable vs référence TRAIN", ["feature"])
