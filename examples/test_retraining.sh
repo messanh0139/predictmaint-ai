@@ -4,16 +4,14 @@
 
 set -e
 
-echo "=========================================="
-echo "Test de Retraining Automatique"
-echo "=========================================="
+echo "Test de retraining automatique"
 echo ""
 
 # Couleurs
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 RED='\033[0;31m'
-NC='\033[0m' # No Color
+NC='\033[0m' 
 
 # Variables
 API_URL="http://localhost:8000"
@@ -94,9 +92,7 @@ NEW_MODEL_INFO=$(curl -s "$API_URL/ready")
 echo "$NEW_MODEL_INFO" | python3 -m json.tool
 echo ""
 
-echo -e "${GREEN}=========================================="
-echo "Test terminé avec succès !"
-echo "==========================================${NC}"
+echo -e "${GREEN}Test terminé avec succès${NC}"
 echo ""
 echo "Prochaines étapes :"
 echo "- Vérifier les métriques : cat storage/models/model_metadata.json"

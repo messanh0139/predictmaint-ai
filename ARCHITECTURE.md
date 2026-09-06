@@ -1,433 +1,187 @@
-# Architecture MLOps - Maintenance Prédictive
+# Architecture
 
-Ce document décrit l'architecture technique complète du système de maintenance prédictive, basée sur une approche moderne MLOps intégrant ingénierie des données, automatisation et développement full-stack.
+Ce document détaille l'architecture technique du projet PredictMaint AI : le pipeline de machine learning, le service d'inférence, et le déploiement en production sur Google Cloud Platform.
 
-## Vue d'ensemble
+Le système a deux modes de fonctionnement :
 
-Le système repose sur trois pipelines fonctionnels orchestrés par Apache Airflow, avec un écosystème complet de monitoring et de déploiement en production.
+- **Production (GCP Cloud Run)** : ce qui tourne réellement en continu, décrit en premier ci-dessous.
+- **Développement local (Docker Compose)** : une stack plus riche (avec Airflow, MongoDB, PostgreSQL, Prometheus) utilisée pour expérimenter, mais qui n'est pas nécessaire au fonctionnement du système en production.
+
+## Vue d'ensemble (production)
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                     PIPELINE 1: ETL/INGESTION                   │
-│                                                                  │
-│  Sources puis MongoDB/Data Lake puis Transformation puis PostgreSQL│
-│                     (brut)                             (propre)  │
-└─────────────────────────────────────────────────────────────────┘
-                              |
-                     Apache Airflow Orchestration
-                              |
-┌─────────────────────────────────────────────────────────────────┐
-│                  PIPELINE 2: TRAINING & MLOPS                   │
-│                                                                  │
-│  PostgreSQL puis Experimentation (3+ modèles) puis Optimisation │
-│             puis Tracking MLflow puis Stockage GCP              │
-└─────────────────────────────────────────────────────────────────┘
-                              |
-                     Modèle Champion
-                              |
-┌─────────────────────────────────────────────────────────────────┐
-│              PIPELINE 3: INFERENCE & INTERFACE                  │
-│                                                                  │
-│  FastAPI (Backend) avec React (Frontend)                        │
-│       |                                                          │
-│  GCP Storage (Modèle optimal)                                   │
-└─────────────────────────────────────────────────────────────────┘
-                              |
-┌─────────────────────────────────────────────────────────────────┐
-│                  SUPERVISION & MONITORING                       │
-│                                                                  │
-│  cAdvisor puis Prometheus puis Grafana                          │
-└─────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────┐
+│  1. Pipeline ML (src/)                                          │
+│     préparation → feature engineering → sélection → entraînement│
+│     → optimisation Optuna → sélection champion → quality gate   │
+│     → registre (local + MLflow + GCS)                           │
+└────────────────────────────────────────────────────────────────┘
+                              │
+                     déclenché par Cloud Scheduler (quotidien)
+                     ou par un push sur main (CI/CD)
+                              ▼
+┌────────────────────────────────────────────────────────────────┐
+│  2. Service d'inférence (Cloud Run)                             │
+│     API FastAPI (predictmaint-api) — charge le modèle champion  │
+│     Dashboard React (predictmaint-dashboard)                    │
+└────────────────────────────────────────────────────────────────┘
+                              │
+                     prédictions + feedback journalisés (GCS)
+                              ▼
+┌────────────────────────────────────────────────────────────────┐
+│  3. Supervision                                                 │
+│     API → métriques custom → Cloud Monitoring → Grafana         │
+└────────────────────────────────────────────────────────────────┘
 ```
 
-## Stack Technique Globale
+Le feedback de production (résultat réel connu a posteriori) est repris automatiquement au réentraînement suivant, ce qui boucle le système sur lui-même sans intervention manuelle.
 
-### Orchestration
-- **Apache Airflow** : Planification et gestion des dépendances entre pipelines
+## Le pipeline de machine learning (`src/`)
 
-### Stockage & Ingestion
-- **MongoDB** ou **Data Lake (MinIO/S3)** : Persistance des données brutes
-- **PostgreSQL** : Base de données relationnelle pour les données propres
+Chaque étape est un script indépendant, exécutable seul ou enchaîné par `src/pipelines/retrain.py`.
 
-### Traitement & Modélisation
-- **Python** : Pandas, Scikit-learn, XGBoost, PyTorch
+### 1. Préparation des données (`src/data/prepare.py`, `src/data/split.py`)
 
-### MLOps & Registry
-- **MLflow** : Tracking des expérimentations
-- **Google Cloud Platform** : Stockage des artefacts modèles
+Chargement du jeu NASA C-MAPSS FD001, puis découpage en trois ensembles **par moteur** (jamais par ligne) : entraînement, calibration, validation. Ce découpage garantit qu'aucun cycle d'un moteur donné n'apparaît dans deux ensembles différents — condition nécessaire pour éviter toute fuite de données (voir `docs/04_data_leakage.md`).
 
-### API & Interface (IHM)
-- **FastAPI** : Backend d'inférence temps réel
-- **React** : Interface utilisateur interactive
+### 2. Feature engineering (`src/features/build_features.py`)
 
-### Supervision & Monitoring
-- **Prometheus** : Collecte et centralisation des métriques
-- **Grafana** : Tableaux de bord et visualisation
-- **cAdvisor** : Monitoring des conteneurs Docker
+Calcul de statistiques glissantes causales par moteur (moyenne, min, max, décalage temporel) sur plusieurs fenêtres de cycles. Chaque statistique ne regarde que le passé du moteur au moment du cycle considéré.
 
----
+### 3. Sélection de variables (`src/features/select_features.py`)
 
-## Pipeline 1 : ETL et Ingestion
+La sélection est ajustée uniquement sur l'ensemble d'entraînement, puis appliquée telle quelle à la calibration et à la validation.
 
-### Objectif
-Centraliser la collecte des données brutes, garantir la traçabilité de l'historique et préparer des données propres pour la modélisation.
+### 4. Entraînement comparatif (`src/models/train.py`)
 
-### Étapes
+Trois familles de modèles sont entraînées et évaluées sur un jeu de calibration dédié : régression logistique, random forest, XGBoost. Le seuil de décision de chacun est calibré séparément pour respecter un rappel minimal.
 
-#### 1. Extraction
-- Connexion aux sources externes (APIs, bases transactionnelles, fichiers plats)
-- Scripts d'extraction planifiés via Airflow
-- Gestion des erreurs et retry automatique
+### 5. Optimisation (`src/models/optimize.py`)
 
-**Localisation** : `pipelines/1_etl_ingestion/extraction/`
+Recherche d'hyperparamètres avec Optuna, validée par une validation croisée groupée par moteur (`StratifiedGroupKFold`), pour que l'optimisation elle-même ne fuite pas d'information entre les groupes.
 
-#### 2. Stockage Brut
-- Persistance immédiate dans **MongoDB** ou **Data Lake (MinIO/S3)**
-- Données brutes stockées SANS transformation préalable
-- Garantie de traçabilité complète de l'historique
+### 6. Sélection du champion (`src/models/promote.py`)
 
-#### 3. Transformation
-- Scripts Python orchestrés par Airflow
-- Nettoyage des données
-- Gestion des valeurs manquantes
-- Feature engineering de base
+Le meilleur modèle est choisi par un critère à plusieurs niveaux, dans cet ordre : garde-fou sur le rappel minimal, puis coût métier, puis PR-AUC, puis score de Brier. Un candidat ne remplace le champion en place que s'il est strictement meilleur sur ce critère — c'est la règle anti-régression, appliquée de façon identique aux trois emplacements de stockage du modèle (voir plus bas).
 
-**Localisation** : `src/data/prepare.py`, `src/features/build_features.py`
+### 7. Verrou qualité (`src/models/quality_gate.py`)
 
-#### 4. Chargement
-- Injection des données tabulaires propres dans **PostgreSQL**
-- Base relationnelle optimisée pour l'analyse
-- Indexation pour performances
+Bloque la promotion d'un modèle qui ne respecte pas des seuils minimaux fixés (rappel, précision, etc.), indépendamment de la comparaison avec le champion actuel.
 
-**Localisation** : `pipelines/1_etl_ingestion/loading/`
+### 8. Registre (`src/models/register.py`, `src/storage/model_artifacts.py`)
 
-### DAG Airflow
-**Fichier** : `orchestration/airflow/dags/pipeline_1_etl.py`
+Le modèle retenu est versionné à trois endroits, chacun protégé par la règle anti-régression :
 
-**Planification** : @daily
+- **Registre local** (`storage/models/registry/index.json`) : hash SHA-256 de chaque version, métriques de validation.
+- **MLflow** (`predictmaint-mlflow`) : chaque entraînement est loggé comme run, le modèle retenu reçoit l'alias `champion`.
+- **Google Cloud Storage** : artefact versionné, plus un pointeur global `champion.json`.
 
-**Workflow** :
-```
-extract_raw_data puis transform_clean_data puis load_to_postgresql puis validate_pipeline
-```
+### Jeu de test externe
 
----
+Le jeu de test externe FD001 (avec son fichier RUL officiel) n'entre jamais dans cette boucle de réentraînement. Il n'est ouvert que par `src/models/evaluate.py`, exécuté séparément, pour produire une mesure finale indépendante de tout ajustement fait pendant l'entraînement ou l'optimisation.
 
-## Pipeline 2 : Entraînement et MLOps
+## Service d'inférence
 
-### Objectif
-Automatiser l'apprentissage itératif, comparer rigoureusement plusieurs architectures de modèles et versionner le meilleur artefact.
+### API (`pipelines/3_inference_ihm/api/`, FastAPI)
 
-### Étapes
+- Charge le modèle champion (depuis GCS en production) au démarrage.
+- `POST /predict` : renvoie le risque de panne pour un moteur donné.
+- `POST /feedback` : reçoit le résultat réel une fois connu, journalisé pour le prochain réentraînement.
+- `POST /retrain/*` : déclenche et suit un réentraînement manuel.
+- `GET /live`, `/ready` : sondes de santé.
+- Exporte ses métriques vers Cloud Monitoring (voir section Supervision).
 
-#### 1. Extraction Data
-- Requêtage de la base PostgreSQL propre
-- Extraction des datasets d'entraînement et de test
-- Split train/validation/test
+Chaque prédiction et chaque feedback sont enregistrés avec un identifiant de moteur décalé (+1 000 000 pour une prédiction unitaire, +5 000 000 pour un import CSV en masse), pour qu'ils ne puissent jamais entrer en collision avec les identifiants des moteurs d'entraînement, de calibration ou de validation.
 
-#### 2. Expérimentation comparative
-Entraînement et évaluation d'au moins **3 modèles distincts** :
-- Régression Logistique
-- Random Forest
-- XGBoost / Réseau de Neurones
+### Dashboard (`pipelines/3_inference_ihm/frontend/`, React 18)
 
-**Localisation** : `src/models/train.py`
+Interface de démonstration : soumission d'un moteur, visualisation du risque prédit, et suivi du réentraînement.
 
-#### 3. Ajustement d'hyperparamètres
-- Optimisation fine des performances de chaque modèle
-- Techniques : Grid Search, Random Search, ou Optuna
-- Validation croisée pour robustesse
+## Déploiement en production (GCP)
 
-**Localisation** : `src/models/optimize.py`
+### Services Cloud Run
 
-#### 4. Tracking & Sélection
-Enregistrement dans **MLflow** :
-- Paramètres de chaque expérimentation
-- Métriques (Accuracy, F1-Score, MSE, PR-AUC, Recall)
-- Artefacts versionnés
-- Sélection automatique du modèle champion
-
-**Localisation** : `src/models/promote.py`, `src/models/register.py`
-
-#### 5. Stockage Model
-- Exportation de l'artefact du meilleur modèle validé
-- Stockage vers **GCP Cloud Storage**
-- Versioning complet et traçabilité
-
-### DAG Airflow
-**Fichier** : `orchestration/airflow/dags/pipeline_2_mlops.py`
-
-**Planification** : @weekly
-
-**Dépendances** : Attend la fin du Pipeline 1
-
-**Workflow** :
-```
-wait_for_pipeline_1 puis extract_from_postgresql puis train_multiple_models
-  puis optimize_hyperparameters puis evaluate_select_champion
-  puis [register_model_to_gcp, track_with_mlflow] puis validate_pipeline
-```
-
----
-
-## Pipeline 3 : Inférence et Interface Utilisateur
-
-### Objectif
-Exposer le modèle de Machine Learning sous forme de service web et offrir un outil de visualisation aux utilisateurs finaux.
-
-### Composants
-
-#### 1. API d'Inférence (FastAPI)
-- Chargement du modèle optimal depuis GCP au démarrage
-- Traitement des requêtes de prédiction en temps réel
-- Endpoints REST :
-  - `/predict` : Prédictions
-  - `/health` : Health check
-  - `/metrics` : Métriques Prometheus
-  - `/feedback` : Collecte de feedback terrain
-
-**Localisation** : `pipelines/3_inference_ihm/api/`
-
-#### 2. Interface Utilisateur (React)
-- Tableau de bord interactif
-- Fonctionnalités :
-  - Soumission de données
-  - Visualisation des résultats (graphiques, KPIs)
-  - Monitoring des prédictions
-  - Déclenchement du réentraînement
-
-**Localisation** : `pipelines/3_inference_ihm/frontend/`
-
-**Technologies** :
-- React 18
-- Recharts (visualisations)
-- Material-UI (composants)
-- Axios (appels API)
-
----
-
-## Supervision, Orchestration et Infrastructure
-
-### Orchestration globale
-
-**Apache Airflow** pilote l'enchaînement séquentiel et conditionnel des DAGs :
-- Pipeline 1 (ETL) puis Pipeline 2 (MLOps)
-- Gestion des erreurs
-- Alertes automatiques
-- Relances automatiques
-
-**Structure** :
-```
-orchestration/airflow/
-├── dags/           # DAGs Python
-├── plugins/        # Plugins personnalisés
-└── config/         # Configuration Airflow
-```
-
-### Monitoring des conteneurs
-
-#### cAdvisor
-- Collecte en continu l'utilisation des ressources :
-  - CPU
-  - Mémoire
-  - Réseau
-  - Disque
-- Par conteneur Docker
-
-#### Prometheus
-- Centralise les métriques :
-  - cAdvisor (conteneurs)
-  - Bases de données (PostgreSQL, MongoDB)
-  - API FastAPI
-- Stockage time-series
-- Système d'alerting
-
-**Configuration** : `infrastructure/monitoring/prometheus/prometheus.yml`
-
-#### Grafana
-- Tableaux de bord unifiés
-- Visualisation en temps réel
-- Alertes visuelles
-- Dashboards :
-  - Vue d'ensemble infrastructure
-  - Performances bases de données
-  - Métriques modèles ML
-  - État conteneurs Docker
-
-**Configuration** : `infrastructure/monitoring/grafana/`
-
-### Déploiement
-
-#### Docker Compose
-Orchestration des services :
-1. MongoDB (données brutes)
-2. PostgreSQL (données propres)
-3. PostgreSQL Airflow (métadonnées)
-4. MLflow (tracking)
-5. API FastAPI (inférence)
-6. Dashboard React (frontend)
-7. Airflow Webserver
-8. Airflow Scheduler
-9. Prometheus
-10. Grafana
-11. cAdvisor
-
-**Fichier** : `infrastructure/deployment/docker-compose.yml`
-
-#### Dockerfiles
-- `Dockerfile.api` : Image API FastAPI
-- `Dockerfile.dashboard` : Image React (build multi-stage avec nginx)
-- `Dockerfile.mlflow` : Image MLflow
-- `Dockerfile.grafana` : Image Grafana personnalisée
-
-#### CI/CD
-- GitHub Actions (`.github/workflows/`) : build, retrain, garde-fous qualité
-  et déploiement à chaque push sur `main`.
-- Cloud Scheduler (`predictmaint-retrain-daily`, région `europe-west1`) :
-  exécute directement le job Cloud Run `predictmaint-retrain` tous les jours
-  à 3h (heure de Paris), indépendamment de tout push de code — c'est ce qui
-  ferme la boucle de feedback de production (prédictions/feedback accumulés
-  via l'API, repris automatiquement au réentraînement suivant). Provisionné
-  via `gcloud scheduler jobs`, pas de code applicatif associé.
-- Cloud Build GCP (`cloudbuild.yaml`)
-
-**Service MLflow (`predictmaint-mlflow`)** : provisionné manuellement (pas de
-step de déploiement dans `deploy.yml`), configuré avec `--memory 2Gi
---min-instances 1 --max-instances 1`. Le backend (`sqlite:////mlflow/mlflow.db`)
-et les artefacts sont stockés sur le disque local du conteneur, non partagés
-entre instances : une seule instance mémoire-suffisante est donc nécessaire
-pour que l'historique des runs et des modèles enregistrés survive dans le
-temps. Avec la limite par défaut (1Gi), le conteneur était tué pour
-dépassement mémoire à chaque enregistrement de modèle, ce qui réinitialisait
-silencieusement toute la base à chaque redémarrage — corrigé le 2026-09-05.
-
----
-
-## Flux de données complet
-
-```
-1. Sources externes
-     ↓
-2. Extraction vers MongoDB/Data Lake (brut)
-     ↓
-3. Transformation Python (orchestrée par Airflow)
-     ↓
-4. PostgreSQL (propre)
-     ↓
-5. Entraînement comparatif (3+ modèles)
-     ↓
-6. Optimisation hyperparamètres (Optuna)
-     ↓
-7. Tracking MLflow + Sélection champion
-     ↓
-8. Stockage GCP Cloud Storage
-     ↓
-9. API FastAPI charge modèle
-     ↓
-10. Dashboard React affiche prédictions
-     ↓
-11. Prometheus/Grafana monitore tout
-```
-
----
-
-## Technologies et versions
-
-| Couche | Technologies |
-|--------|--------------|
-| Orchestration | Apache Airflow 2.8.1 |
-| Stockage brut | MongoDB 7.0, MinIO/S3 |
-| Stockage propre | PostgreSQL 16 |
-| Traitement | Python 3.11, Pandas, NumPy |
-| ML | Scikit-learn, XGBoost, PyTorch |
-| MLOps | MLflow, Optuna |
-| API | FastAPI, Uvicorn |
-| Frontend | React 18, Recharts, Material-UI |
-| Monitoring | Prometheus, Grafana, cAdvisor |
-| Conteneurisation | Docker, Docker Compose |
-| Cloud | Google Cloud Platform |
-| CI/CD | GitHub Actions, Cloud Build |
-
----
-
-## Ports des services
-
-| Service | Port | Description |
-|---------|------|-------------|
-| MongoDB | 27017 | Base données brutes |
-| PostgreSQL | 5432 | Base données propres |
-| MLflow | 5000 | UI tracking expérimentations |
-| API FastAPI | 8000 | API inférence |
+| Service | Rôle |
+|---------|------|
+| `predictmaint-api` | API FastAPI |
+| `predictmaint-dashboard` | Dashboard React |
+| `predictmaint-mlflow` | Registre et suivi MLflow |
+| `predictmaint-grafana` | Supervision (datasource Cloud Monitoring) |
+| `predictmaint-retrain` (Cloud Run Job, pas un service) | Réentraînement complet |
+
+**MLflow** est provisionné manuellement (pas d'étape dans `deploy.yml`), avec `--memory 2Gi --min-instances 1 --max-instances 1`. Son backend (`sqlite:////mlflow/mlflow.db`) et ses artefacts vivent sur le disque local du conteneur, non partagés entre instances : une seule instance suffisamment dotée en mémoire est donc nécessaire pour que l'historique survive dans le temps. Avec la limite par défaut (1 Gi), le conteneur était tué pour dépassement mémoire à chaque enregistrement de modèle, ce qui réinitialisait silencieusement toute la base à chaque redémarrage — corrigé le 2026-09-05.
+
+### CI/CD
+
+- **GitHub Actions** (`.github/workflows/deploy.yml`) : à chaque push sur `main`, exécute les tests, construit les images Docker, les pousse, puis déploie sur Cloud Run. Le job de réentraînement est aussi reconstruit et redéployé à cette occasion.
+- **Cloud Scheduler** (`predictmaint-retrain-daily`, région `europe-west1`) : exécute directement le job Cloud Run `predictmaint-retrain` tous les jours à 3h (heure de Paris), indépendamment de tout push de code — c'est ce qui ferme la boucle de feedback de production (prédictions et retours accumulés via l'API, repris automatiquement au réentraînement suivant). Provisionné via `gcloud scheduler jobs`, sans code applicatif associé.
+
+## Supervision
+
+L'API exporte ses métriques vers Cloud Monitoring (`pipelines/3_inference_ihm/api/cloud_monitoring.py`, converties depuis le format Prometheus) :
+
+- `predictmaint/predictions_total` — nombre de prédictions, par niveau de risque
+- `predictmaint/prediction_latency_seconds_mean` — latence moyenne
+- `predictmaint/model_ready` — disponibilité du modèle
+- `predictmaint/drift_share` — part des variables en dérive
+- `predictmaint/drift_psi` — indice PSI par variable, comparé à la référence d'entraînement
+- `predictmaint/telemetry_errors_total` — erreurs de persistance de la télémétrie
+
+Ces métriques sont affichées dans Grafana (dashboard `PredictMaint AI - Cloud Monitoring`), aux côtés des métriques natives Cloud Run (nombre de requêtes, etc.).
+
+## Développement local (Docker Compose)
+
+`infrastructure/deployment/docker-compose.yml` démarre une stack plus complète, pensée pour expérimenter en local sans dépendre de GCP :
+
+| Service | Port | Rôle |
+|---------|------|------|
+| MongoDB | 27017 | Stockage brut optionnel (ingestion ETL) |
+| PostgreSQL | 5432 | Stockage propre optionnel |
+| MLflow | 5000 | Registre et suivi local |
+| API FastAPI | 8000 | API d'inférence |
 | Dashboard React | 3000 | Interface utilisateur |
-| Airflow Webserver | 8080 | UI Airflow |
-| Prometheus | 9090 | Métriques monitoring |
-| Grafana | 3001 | Dashboards visualisation |
-| cAdvisor | 8082 | Métriques conteneurs |
+| Airflow Webserver | 8080 | Orchestration ETL locale |
+| Prometheus | 9090 | Collecte de métriques |
+| Grafana | 3001 | Dashboards locaux |
+| cAdvisor | 8082 | Métriques des conteneurs Docker |
 
----
-
-## Points clés de l'architecture
-
-L'architecture mise en place permet de :
-
-1. **Traçabilité complète** : Lien entre données brutes, transformations, modèles et résultats via versioning et registre MLflow
-
-2. **Automatisation end-to-end** : Orchestration Airflow des pipelines ETL, entraînement et déploiement
-
-3. **Monitoring proactif** : Surveillance continue de l'infrastructure (cAdvisor + Prometheus) et des modèles en production
-
-4. **Comparaison rigoureuse** : Expérimentation de multiples architectures de modèles avec tracking MLflow
-
-5. **Déploiement cloud-ready** : Infrastructure containerisée déployable sur GCP
-
-6. **Interface utilisateur moderne** : Dashboard React interactif pour visualisation et feedback terrain
-
----
+MongoDB, PostgreSQL et Airflow servent à une ingestion ETL optionnelle (`pipelines/1_etl_ingestion/`, DAGs dans `orchestration/airflow/dags/`) : le pipeline `src/data/prepare.py` peut lire depuis MongoDB si la variable d'environnement `USE_DATABASES=1` est définie, mais lit directement le CSV FD001 par défaut. Cette ingestion n'est pas utilisée en production.
 
 ## Structure du projet
 
 ```
 predictmaint-ai/
+├── src/                         Pipeline ML
+│   ├── config.py
+│   ├── data/                    Chargement, split, cibles, validation
+│   ├── features/                 Feature engineering, sélection
+│   ├── models/                   Entraînement, optimisation, registre
+│   ├── monitoring/               Dérive (PSI), performance
+│   ├── pipelines/retrain.py      Orchestration du réentraînement
+│   ├── storage/                  Persistance des artefacts modèle
+│   └── utils/
 ├── pipelines/
-│   ├── 1_etl_ingestion/
-│   │   ├── extraction/
-│   │   ├── transformation/
-│   │   └── loading/
-│   ├── 2_training_mlops/
-│   │   ├── experimentation/
-│   │   ├── optimization/
-│   │   └── registry/
+│   ├── 1_etl_ingestion/          Ingestion optionnelle (dev local)
 │   └── 3_inference_ihm/
-│       ├── api/
-│       └── frontend/
-├── orchestration/
-│   └── airflow/
-│       ├── dags/
-│       ├── plugins/
-│       └── config/
+│       ├── api/                  API FastAPI
+│       └── frontend/              Dashboard React
+├── orchestration/airflow/        DAGs pour l'ETL local (optionnel)
 ├── infrastructure/
-│   ├── deployment/
-│   ├── monitoring/
-│   └── scripts/
+│   ├── deployment/                Dockerfiles, docker-compose, scripts GCP
+│   ├── monitoring/grafana/         Dashboards Grafana
+│   └── tests/                     Tests unitaires et d'intégration
 ├── storage/
-│   ├── raw/
-│   ├── processed/
-│   └── models/
-└── src/
-    ├── config.py
-    ├── data/
-    ├── features/
-    ├── models/
-    ├── monitoring/
-    ├── storage/
-    └── utils/
+│   ├── raw/                       Données brutes FD001
+│   ├── processed/                 Données préparées, splits
+│   └── models/                    Registre local, rapports
+├── docs/                          Documentation détaillée
+├── notebooks/                     Analyses exploratoires
+└── .github/workflows/deploy.yml   CI/CD
 ```
 
----
+## Documentation complémentaire
 
-## Documentation
-
-- **Guide de démarrage rapide** : `QUICK_START.md`
-- **Rapports de validation** : `storage/models/`
-- **Configuration Airflow** : `orchestration/airflow/config/`
-- **Dashboards Grafana** : `infrastructure/monitoring/grafana/dashboards/`
+- `README.md` — présentation générale et démarrage rapide
+- `QUICK_START.md` — prise en main pas à pas
+- `docs/` — besoin métier, stratégie ML, prévention du data leakage, monitoring, risques et limites
+- `storage/models/` — rapports de validation, quality gate, optimisation (générés à chaque run)

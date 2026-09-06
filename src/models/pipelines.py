@@ -11,7 +11,7 @@ def build_model_pipeline(
     *,
     scale_features: bool = False,
 ) -> Pipeline:
-    # Build the preprocessing pipeline shared by all model candidates
+    # Pipeline de prétraitement commun à tous les modèles candidats
     steps: list[tuple[str, BaseEstimator]] = [
         ("imputer", SimpleImputer(strategy="median")),
     ]

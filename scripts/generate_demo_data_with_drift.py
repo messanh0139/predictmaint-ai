@@ -52,7 +52,7 @@ def generate_engine_cycles(engine_id: int, num_cycles: int, drift_factor: float,
         row["setting_2"] = BASELINE_VALUES["setting_2"] + np.random.uniform(-0.0001, 0.0001)
         row["setting_3"] = BASELINE_VALUES["setting_3"]
 
-        # Sensors avec drift progressif + bruit
+        # Capteurs avec dérive progressive et bruit
         for i in range(1, 22):
             sensor_key = f"sensor_{i}"
             base_value = BASELINE_VALUES[sensor_key]
@@ -80,14 +80,7 @@ def generate_demo_dataset(
     cycles_per_engine_range: tuple = (50, 150),
     drift_progression: str = "gradual"
 ) -> pd.DataFrame:
-    """
-    Génère un dataset complet avec drift progressif
-
-    Args:
-        num_engines: Nombre de moteurs à générer
-        cycles_per_engine_range: (min, max) cycles par moteur
-        drift_progression: "none", "gradual", "sudden"
-    """
+    """Génère un dataset complet avec dérive progressive sur les capteurs."""
     all_data = []
 
     for engine_id in range(1000, 1000 + num_engines):
@@ -122,13 +115,13 @@ def generate_demo_dataset(
 
 def main():
     # point d'entrée CLI : génère le dataset de démo et l'écrit sur disque
-    print("Génération de données de démonstration avec drift")
+    print("Génération de données de démonstration avec dérive")
 
     # Configuration
     NUM_ENGINES = 30
-    DRIFT_TYPE = "gradual"  # Options: "none", "gradual", "sudden"
+    DRIFT_TYPE = "gradual"  # options : "none", "gradual", "sudden"
 
-    print(f"Configuration : {NUM_ENGINES} moteurs, drift {DRIFT_TYPE} de 0% à 40%, 50-150 cycles/moteur")
+    print(f"Configuration : {NUM_ENGINES} moteurs, dérive {DRIFT_TYPE} de 0% à 40%, 50-150 cycles/moteur")
 
     # Génération
     print("Génération en cours...")
@@ -143,9 +136,9 @@ def main():
     print(f"Labels positifs : {(df['actual_failure_within_30_cycles'] == 1).sum():,} cycles")
     print(f"Labels négatifs : {(df['actual_failure_within_30_cycles'] == 0).sum():,} cycles")
 
-    # Analyse du drift (sur les 5 premiers sensors)
-    print("Aperçu du drift (moyennes par tranche de moteurs) :")
-    df['engine_batch'] = pd.cut(df['engine_id'], bins=3, labels=['Début (0% drift)', 'Milieu (20% drift)', 'Fin (40% drift)'])
+    # Analyse de la dérive (sur les 3 premiers capteurs)
+    print("Aperçu de la dérive (moyennes par tranche de moteurs) :")
+    df['engine_batch'] = pd.cut(df['engine_id'], bins=3, labels=['Début (0% dérive)', 'Milieu (20% dérive)', 'Fin (40% dérive)'])
 
     for sensor in ['sensor_1', 'sensor_2', 'sensor_3']:
         means = df.groupby('engine_batch')[sensor].mean()
