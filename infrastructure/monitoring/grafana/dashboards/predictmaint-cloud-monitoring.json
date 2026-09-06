@@ -1,11 +1,43 @@
 {
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "preload": false,
+  "tags": [],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
   "title": "PredictMaint AI - Cloud Monitoring",
   "uid": "predictmaint-cloud-monitoring",
-  "schemaVersion": 39,
+  "schemaVersion": 41,
   "version": 1,
   "refresh": "1m",
   "panels": [
     {
+      "id": 1,
       "type": "timeseries",
       "title": "Predictions / minute (par risque)",
       "gridPos": {
@@ -44,6 +76,7 @@
       }
     },
     {
+      "id": 2,
       "type": "timeseries",
       "title": "Latence moyenne des prédictions",
       "gridPos": {
@@ -78,6 +111,7 @@
       }
     },
     {
+      "id": 3,
       "type": "stat",
       "title": "Model ready",
       "gridPos": {
@@ -112,6 +146,7 @@
       }
     },
     {
+      "id": 4,
       "type": "gauge",
       "title": "Drift share (part des variables en dérive)",
       "gridPos": {
@@ -165,6 +200,7 @@
       }
     },
     {
+      "id": 5,
       "type": "stat",
       "title": "Telemetry errors (total)",
       "gridPos": {
@@ -200,6 +236,7 @@
       }
     },
     {
+      "id": 6,
       "type": "timeseries",
       "title": "Cloud Run - requêtes API (natif, aucune métrique custom)",
       "gridPos": {
@@ -239,6 +276,7 @@
       }
     },
     {
+      "id": 7,
       "type": "bargauge",
       "title": "PSI par variable (dérive vs référence TRAIN)",
       "gridPos": {
