@@ -61,7 +61,7 @@
               "metric.label.risk"
             ],
             "perSeriesAligner": "ALIGN_RATE",
-            "crossSeriesReducer": "REDUCE_NONE",
+            "crossSeriesReducer": "REDUCE_SUM",
             "alignmentPeriod": "60s",
             "projectName": "predictmaint-ai-4821"
           },
@@ -98,6 +98,7 @@
             ],
             "view": "FULL",
             "perSeriesAligner": "ALIGN_MEAN",
+            "crossSeriesReducer": "REDUCE_MEAN",
             "alignmentPeriod": "60s",
             "projectName": "predictmaint-ai-4821"
           },
@@ -134,6 +135,7 @@
             ],
             "view": "FULL",
             "perSeriesAligner": "ALIGN_MEAN",
+            "crossSeriesReducer": "REDUCE_MEAN",
             "alignmentPeriod": "60s",
             "projectName": "predictmaint-ai-4821"
           },
@@ -189,6 +191,7 @@
             ],
             "view": "FULL",
             "perSeriesAligner": "ALIGN_MEAN",
+            "crossSeriesReducer": "REDUCE_MEAN",
             "alignmentPeriod": "60s",
             "projectName": "predictmaint-ai-4821"
           },
