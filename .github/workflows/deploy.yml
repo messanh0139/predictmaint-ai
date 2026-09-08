@@ -234,15 +234,16 @@ jobs:
           ENV_VARS="STATUS_DASHBOARD_URL=${DASHBOARD_URL}"
           if [[ -n "${MLFLOW_URL:-}" ]]; then
             SERVICES="${SERVICES},mlflow"
-            ENV_VARS="${ENV_VARS},STATUS_MLFLOW_URL=${MLFLOW_URL}"
+            ENV_VARS="${ENV_VARS}|STATUS_MLFLOW_URL=${MLFLOW_URL}"
           fi
           if [[ -n "${GRAFANA_URL:-}" ]]; then
             SERVICES="${SERVICES},grafana"
-            ENV_VARS="${ENV_VARS},STATUS_GRAFANA_URL=${GRAFANA_URL}/api/health"
+            ENV_VARS="${ENV_VARS}|STATUS_GRAFANA_URL=${GRAFANA_URL}/api/health"
           fi
+          # délimiteur "|" car STATUS_SERVICES contient des virgules dans sa valeur
           gcloud run services update "${API_SERVICE}" \
             --region "${REGION}" \
-            --update-env-vars "STATUS_SERVICES=${SERVICES},${ENV_VARS}" \
+            --update-env-vars="^|^STATUS_SERVICES=${SERVICES}|${ENV_VARS}" \
             --quiet
 
       - name: Smoke tests
