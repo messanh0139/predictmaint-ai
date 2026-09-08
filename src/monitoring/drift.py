@@ -10,7 +10,7 @@ import pandas as pd
 from src.config import REFERENCE_DIR, ROOT
 
 
-def psi(reference: pd.Series, current: pd.Series, bins: int = 10) -> float:
+def psi(reference: pd.Series, current: pd.Series, bins: int = 5) -> float:
     # Population Stability Index avec bornes apprises sur la référence uniquement
     ref = pd.to_numeric(reference, errors="coerce").dropna().to_numpy()
     cur = pd.to_numeric(current, errors="coerce").dropna().to_numpy()

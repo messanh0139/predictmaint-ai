@@ -84,4 +84,15 @@ export const getRetrainStatus = async () => {
   }
 };
 
+// API État des conteneurs (up/down)
+export const getServicesStatus = async () => {
+  try {
+    const response = await apiClient.get('/services/status');
+    return { data: response.data, error: null };
+  } catch (error) {
+    const errorMsg = error.response?.data?.detail || error.message;
+    return { data: null, error: errorMsg };
+  }
+};
+
 export default apiClient;

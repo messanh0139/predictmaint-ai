@@ -96,6 +96,54 @@ code {
   transform: translateX(4px);
 }
 
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 1.5rem;
+}
+
+.container-status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.container-status-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 6px;
+  background: #10283b;
+  color: #bde9ff;
+  font-size: 0.85rem;
+}
+
+.container-status-item .status-label {
+  margin-left: auto;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  opacity: 0.8;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #7a8a94;
+  flex-shrink: 0;
+}
+
+.status-dot.up {
+  background: #35b88b;
+  box-shadow: 0 0 6px #35b88b;
+}
+
+.status-dot.down {
+  background: #e35d6a;
+  box-shadow: 0 0 6px #e35d6a;
+}
+
 /* Main Content */
 .main-content {
   flex: 1;

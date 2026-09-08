@@ -64,6 +64,72 @@
         }
       },
       "targets": [{"expr": "topk(15, predictmaint_drift_psi)", "legendFormat": "{{feature}}"}]
+    },
+    {
+      "type": "stat",
+      "title": "État des conteneurs",
+      "gridPos": {"x": 0, "y": 21, "w": 24, "h": 6},
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {"type": "value", "options": {"0": {"text": "DOWN", "color": "red"}, "1": {"text": "UP", "color": "green"}}}
+          ],
+          "thresholds": {
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "green", "value": 1}
+            ]
+          }
+        }
+      },
+      "options": {"orientation": "horizontal", "textMode": "value_and_name", "graphMode": "none"},
+      "targets": [{"expr": "(time() - container_last_seen{name=~\"^predictmaint-.+\"}) < bool 30", "legendFormat": "{{name}}", "instant": true}]
+    },
+    {
+      "type": "timeseries",
+      "title": "CPU par conteneur",
+      "gridPos": {"x": 0, "y": 27, "w": 12, "h": 8},
+      "fieldConfig": {"defaults": {"unit": "short"}},
+      "targets": [{"expr": "sum(rate(container_cpu_usage_seconds_total{name=~\"^predictmaint-.+\"}[1m])) by (name)", "legendFormat": "{{name}}"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "RAM par conteneur",
+      "gridPos": {"x": 12, "y": 27, "w": 12, "h": 8},
+      "fieldConfig": {"defaults": {"unit": "bytes"}},
+      "targets": [{"expr": "sum(container_memory_usage_bytes{name=~\"^predictmaint-.+\"}) by (name)", "legendFormat": "{{name}}"}]
+    },
+    {
+      "type": "stat",
+      "title": "PostgreSQL",
+      "gridPos": {"x": 0, "y": 35, "w": 6, "h": 5},
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {"type": "value", "options": {"0": {"text": "DOWN", "color": "red"}, "1": {"text": "UP", "color": "green"}}}
+          ]
+        }
+      },
+      "targets": [{"expr": "pg_up", "instant": true}]
+    },
+    {
+      "type": "stat",
+      "title": "Connexions actives (PostgreSQL)",
+      "gridPos": {"x": 6, "y": 35, "w": 6, "h": 5},
+      "targets": [{"expr": "pg_stat_database_numbackends{datname=\"predictmaint\"}", "instant": true}]
+    },
+    {
+      "type": "stat",
+      "title": "Taille de la base (predictmaint)",
+      "gridPos": {"x": 12, "y": 35, "w": 6, "h": 5},
+      "fieldConfig": {"defaults": {"unit": "bytes"}},
+      "targets": [{"expr": "pg_database_size_bytes{datname=\"predictmaint\"}", "instant": true}]
+    },
+    {
+      "type": "timeseries",
+      "title": "Transactions PostgreSQL / s",
+      "gridPos": {"x": 18, "y": 35, "w": 6, "h": 5},
+      "targets": [{"expr": "rate(pg_stat_database_xact_commit{datname=\"predictmaint\"}[1m])", "legendFormat": "commits/s"}]
     }
   ]
 }

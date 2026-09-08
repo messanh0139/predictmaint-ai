@@ -220,6 +220,31 @@ jobs:
             --allow-unauthenticated \
             --quiet
 
+      - name: Resolve dashboard URL
+        shell: bash
+        run: |
+          DASHBOARD_URL="$(gcloud run services describe "${DASHBOARD_SERVICE}" --region "${REGION}" --format='value(status.url)')"
+          test -n "${DASHBOARD_URL}"
+          echo "DASHBOARD_URL=${DASHBOARD_URL}" >> "${GITHUB_ENV}"
+
+      - name: Pointer l'état des conteneurs de l'API vers les services de production
+        shell: bash
+        run: |
+          SERVICES="api,dashboard"
+          ENV_VARS="STATUS_DASHBOARD_URL=${DASHBOARD_URL}"
+          if [[ -n "${MLFLOW_URL:-}" ]]; then
+            SERVICES="${SERVICES},mlflow"
+            ENV_VARS="${ENV_VARS},STATUS_MLFLOW_URL=${MLFLOW_URL}"
+          fi
+          if [[ -n "${GRAFANA_URL:-}" ]]; then
+            SERVICES="${SERVICES},grafana"
+            ENV_VARS="${ENV_VARS},STATUS_GRAFANA_URL=${GRAFANA_URL}/api/health"
+          fi
+          gcloud run services update "${API_SERVICE}" \
+            --region "${REGION}" \
+            --update-env-vars "STATUS_SERVICES=${SERVICES},${ENV_VARS}" \
+            --quiet
+
       - name: Smoke tests
         shell: bash
         run: |
@@ -227,7 +252,6 @@ jobs:
           echo "Testing public API at ${API_URL}/ready"
           curl --fail --retry 5 --retry-delay 5 "${API_URL}/ready"
 
-          DASHBOARD_URL="$(gcloud run services describe "${DASHBOARD_SERVICE}" --region "${REGION}" --format='value(status.url)')"
           echo "Testing dashboard at ${DASHBOARD_URL}/"
           curl --fail --retry 8 --retry-delay 5 "${DASHBOARD_URL}/"
 

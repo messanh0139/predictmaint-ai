@@ -4,10 +4,13 @@ import io
 import json
 import logging
 import os
+import socket
 import subprocess
 import sys
 import threading
 import time
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List
@@ -111,6 +114,39 @@ CLOUD_MONITORING_EXPORT_ERRORS = Counter(
 DRIFT_CHECK_INTERVAL_SECONDS = int(os.getenv("DRIFT_CHECK_INTERVAL_SECONDS", "300"))
 CLOUD_MONITORING_FLUSH_INTERVAL_SECONDS = int(os.getenv("CLOUD_MONITORING_FLUSH_INTERVAL_SECONDS", "60"))
 GCP_REGION = os.getenv("GCP_REGION", "")
+
+# Tous les conteneurs qu'on sait surveiller. STATUS_SERVICES choisit lesquels
+# activer (ex: "api,dashboard,mlflow,grafana" en production, où les autres
+# n'existent pas). Par défaut : tout, pour le docker-compose local.
+_KNOWN_SERVICES = {
+    "api": {"name": "API", "kind": "http", "url": os.getenv("STATUS_API_URL", "http://localhost:8080/live")},
+    "dashboard": {"name": "Dashboard", "kind": "http", "url": os.getenv("STATUS_DASHBOARD_URL", "http://dashboard:8080")},
+    "mlflow": {"name": "Tracking (MLflow)", "kind": "http", "url": os.getenv("STATUS_MLFLOW_URL", "http://mlflow:5000")},
+    "prometheus": {"name": "Prometheus", "kind": "http", "url": os.getenv("STATUS_PROMETHEUS_URL", "http://prometheus:9090/-/healthy")},
+    "grafana": {"name": "Grafana", "kind": "http", "url": os.getenv("STATUS_GRAFANA_URL", "http://grafana:3000/api/health")},
+    "airflow": {"name": "Airflow", "kind": "http", "url": os.getenv("STATUS_AIRFLOW_URL", "http://airflow-webserver:8080/health")},
+    "cadvisor": {"name": "cAdvisor", "kind": "http", "url": os.getenv("STATUS_CADVISOR_URL", "http://cadvisor:8080/healthz")},
+    "postgresql": {"name": "PostgreSQL", "kind": "tcp", "host": os.getenv("STATUS_POSTGRES_HOST", "postgresql"), "port": int(os.getenv("STATUS_POSTGRES_PORT", "5432"))},
+    "mongodb": {"name": "MongoDB", "kind": "tcp", "host": os.getenv("STATUS_MONGO_HOST", "mongodb"), "port": int(os.getenv("STATUS_MONGO_PORT", "27017"))},
+}
+_ENABLED_SERVICES = os.getenv("STATUS_SERVICES", ",".join(_KNOWN_SERVICES)).split(",")
+_SERVICE_CHECKS = [_KNOWN_SERVICES[key] for key in _ENABLED_SERVICES if key in _KNOWN_SERVICES]
+_SERVICE_CHECK_TIMEOUT_SECONDS = float(os.getenv("STATUS_CHECK_TIMEOUT_SECONDS", "3"))
+
+
+def _check_service(service: dict) -> dict:
+    # Teste si le service répond, down par défaut en cas d'erreur
+    up = False
+    try:
+        if service["kind"] == "http":
+            with urllib.request.urlopen(service["url"], timeout=_SERVICE_CHECK_TIMEOUT_SECONDS) as resp:
+                up = resp.status < 500
+        else:
+            with socket.create_connection((service["host"], service["port"]), timeout=_SERVICE_CHECK_TIMEOUT_SECONDS):
+                up = True
+    except Exception:
+        up = False
+    return {"name": service["name"], "up": up}
 
 _model = None
 _metadata = None
@@ -365,6 +401,13 @@ def readiness():
 def health():
     # Alias de /ready, conservé pour compatibilité avec les checks génériques
     return readiness()
+
+
+@app.get("/services/status")
+def services_status():
+    # État up/down de chaque conteneur de la stack, vérifié en parallèle
+    with ThreadPoolExecutor(max_workers=len(_SERVICE_CHECKS)) as pool:
+        return {"services": list(pool.map(_check_service, _SERVICE_CHECKS))}
 
 
 @app.get("/metrics")
