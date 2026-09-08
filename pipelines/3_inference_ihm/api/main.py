@@ -33,8 +33,7 @@ from src.data.collect_feedback import append_feature_dataset, build_uploaded_fea
 from src.features.build_features import build_causal_features
 from src.monitoring.drift import current_features_from_prediction_log, statistical_drift_report
 
-# Racine du projet pour exécuter les commandes depuis le bon répertoire
-# Permet de définir explicitement via variable d'environnement, sinon détection automatique
+# Racine du projet : via variable d'environnement, sinon détectée automatiquement
 if "PROJECT_ROOT" in os.environ:
     PROJECT_ROOT = Path(os.environ["PROJECT_ROOT"])
 else:
@@ -45,7 +44,7 @@ else:
             PROJECT_ROOT = parent
             break
     else:
-        # Fallback: remonter 4 niveaux (structure locale)
+        # Sinon, on remonte 4 niveaux (structure locale)
         PROJECT_ROOT = current.parent.parent.parent.parent
 
 # Fonction pour résoudre les chemins (absolus ou relatifs à PROJECT_ROOT)
@@ -98,9 +97,7 @@ app.add_middleware(
 PREDICTIONS = Counter("predictmaint_predictions_total", "Nombre de prédictions", ["risk"])
 LATENCY = Histogram("predictmaint_prediction_latency_seconds", "Latence de prédiction")
 TELEMETRY_ERRORS = Counter("predictmaint_telemetry_errors_total", "Erreurs de persistance télémétrie", ["sink"])
-# Un compteur à label n'est exporté qu'après son premier appel à .labels(...) :
-# on déclare les deux valeurs possibles tout de suite pour qu'il parte à 0
-# plutôt que de rester complètement absent tant qu'aucune erreur n'est survenue.
+# On force les deux valeurs à 0 dès le départ, pour qu'elles soient visibles tout de suite
 TELEMETRY_ERRORS.labels(sink="local")
 TELEMETRY_ERRORS.labels(sink="gcs")
 MODEL_READY = Gauge("predictmaint_model_ready", "1 si le modèle est chargé")
@@ -179,9 +176,7 @@ class PredictionRequest(BaseModel):
 
     @model_validator(mode="after")
     def cycles_must_increase(self):
-        # Les features causales (fenêtres glissantes) supposent un historique
-        # ordonné sans doublon : on rejette la requête sinon plutôt que de
-        # produire une prédiction silencieusement erronée.
+        # Les cycles doivent être triés et sans doublon, sinon on refuse la requête
         cycles = [x.cycle for x in self.history]
         if cycles != sorted(cycles) or len(cycles) != len(set(cycles)):
             raise ValueError("history doit contenir des cycles uniques et strictement croissants")
@@ -221,8 +216,7 @@ def _persist_record(record: dict, local_path: Path, gcs_prefix: str) -> None:
 
     if PREDICTION_BUCKET:
         try:
-            # Import différé : évite la dépendance google-cloud-storage quand
-            # PREDICTION_BUCKET n'est pas configuré (dev local).
+            # Import différé pour éviter la dépendance google-cloud-storage en dev local
             from google.cloud import storage
 
             client = storage.Client()
@@ -259,9 +253,7 @@ def _run_retrain_job(rows_added: int, optimize: bool = True, trials: int = 30) -
         trials=trials,
     )
     try:
-        # On exécute directement les étapes au lieu d'utiliser src.pipelines.retrain
-        # car ce dernier fusionne les prédictions/feedback depuis GCS, ce qui n'est
-        # pas nécessaire ici vu que les données uploadées sont déjà ajoutées localement.
+        # On refait les étapes à la main, src.pipelines.retrain irait aussi chercher sur GCS
         env = {
             **os.environ,
             "INCLUDE_PRODUCTION_FEEDBACK": "1",
@@ -365,8 +357,7 @@ def readiness():
             "failure_window": metadata.get("failure_window"),
         }
     except Exception as exc:
-        # 503 plutôt que 500 : signale explicitement une indisponibilité
-        # temporaire (artefacts manquants) aux orchestrateurs de déploiement.
+        # 503 (pas 500) : indique que c'est temporaire, pas une vraie panne
         raise HTTPException(status_code=503, detail=str(exc))
 
 
@@ -397,7 +388,7 @@ def feedback(payload: FeedbackRequest):
 
 @app.post("/retrain/upload")
 async def retrain_upload(file: UploadFile = File(...)):
-    # Reçoit un CSV de données terrain, l'ajoute au jeu de features de
+    # Reçoit un CSV de données terrain et l'ajoute au jeu de features de production
     if not _retrain_lock.acquire(blocking=False):
         raise HTTPException(status_code=409, detail="Un réentraînement est déjà en cours.")
     try:
@@ -412,17 +403,14 @@ async def retrain_upload(file: UploadFile = File(...)):
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         rows_added = append_feature_dataset(new_rows, PRODUCTION_FEATURES_PATH)
     except HTTPException:
-        # Validation échouée avant le lancement du job : libérer le verrou
-        # immédiatement plutôt que d'attendre un job qui ne démarrera jamais.
+        # Validation échouée avant le job : on libère le verrou tout de suite
         _retrain_lock.release()
         raise
     except Exception:
         _retrain_lock.release()
         raise
 
-    # Le job tourne en arrière-plan : la requête HTTP répond immédiatement,
-    # l'utilisateur peut suivre l'avancement via /retrain/status.
-    # L'optimisation est activée par défaut pour garder la meilleure qualité
+    # Le job tourne en arrière-plan, suivable via /retrain/status ; optimisation activée par défaut
     thread = threading.Thread(target=_run_retrain_job, args=(rows_added, True, 30), daemon=True)
     thread.start()
     logger.info("automatic retrain triggered rows_added=%s optimize=True trials=30", rows_added)
@@ -437,14 +425,13 @@ def retrain_status():
 
 @app.post("/predict", response_model=PredictionResponse)
 def predict(payload: PredictionRequest):
-    # Calcule la probabilité de panne à partir de l'historique fourni et
+    # Calcule la probabilité de panne à partir de l'historique fourni
     start = time.perf_counter()
     model, metadata = load_assets()
     rows = [{"engine_id": payload.engine_id, **snap.model_dump()} for snap in payload.history]
     raw = pd.DataFrame(rows)
     feat = build_causal_features(raw)
-    # Seul le dernier cycle de l'historique est prédit : les cycles précédents
-    # ne servent qu'à calculer les features causales (fenêtres glissantes).
+    # Seul le dernier cycle est prédit, les précédents servent juste aux moyennes glissantes
     last = feat.iloc[[-1]]
     features = metadata["selected_features"]
     missing = [c for c in features if c not in last.columns]
@@ -469,8 +456,7 @@ def predict(payload: PredictionRequest):
         "model_name": str(metadata.get("model_name")),
         "model_version": metadata.get("model_version"),
     }
-    # Feature snapshot conservé côté télémétrie pour drift/reproductibilité, non exposé
-    # au client dans la réponse de l'API.
+    # Copie des features gardée pour suivre la dérive, mais jamais renvoyée au client
     telemetry_record = {
         **public_record,
         "dataset_manifest_sha256": metadata.get("dataset_manifest_sha256"),

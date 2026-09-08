@@ -35,7 +35,7 @@ def main(n_trials: int = 30) -> None:
     cv = StratifiedGroupKFold(n_splits=CV_FOLDS, shuffle=True, random_state=RANDOM_STATE)
 
     def objective(trial: optuna.Trial) -> float:
-        # Fonction objectif Optuna : entraîne un pipeline XGBoost avec les
+        # Entraîne un XGBoost avec les hyperparamètres de cet essai et retourne son score
         model = build_model_pipeline(
             XGBClassifier(
                 # Plages de recherche resserrées autour de valeurs raisonnables

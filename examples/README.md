@@ -57,7 +57,7 @@ curl -X POST "${API_URL}/predict" \
 }
 ```
 
-Sauvegarde le `prediction_id` pour soumettre le feedback plus tard.
+Sauvegarde le **prediction_id** pour soumettre le feedback plus tard.
 
 ## 3. Soumettre un feedback
 
@@ -130,7 +130,7 @@ echo "Password: $(gcloud secrets versions access latest \
 
 ### Option A : Upload CSV
 
-Créer un fichier CSV avec vos données (voir format dans `GUIDE_MONITORING_RETRAINING.md`) :
+Créer un fichier CSV avec vos données (voir format dans **GUIDE_MONITORING_RETRAINING.md**) :
 
 ```bash
 curl -X POST "${API_URL}/retrain/upload" \
@@ -256,7 +256,7 @@ print()
 print("Tests terminés !")
 ```
 
-Sauvegarder ce script dans `test_api.py` et lancer :
+Sauvegarder ce script dans **test_api.py** et lancer :
 
 ```bash
 python3 test_api.py
@@ -301,4 +301,4 @@ while True:
 
 ---
 
-**Pour plus de détails, consultez** : `GUIDE_MONITORING_RETRAINING.md`
+**Pour plus de détails, consultez** : **GUIDE_MONITORING_RETRAINING.md**

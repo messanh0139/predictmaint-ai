@@ -97,7 +97,7 @@ def _start_mlflow() -> None:
 
 
 def main() -> None:
-    # Entraîne tous les modèles candidats, calibre leur seuil, sélectionne le
+    # Entraîne tous les modèles candidats, calibre leur seuil, et garde le meilleur
     MODELS_DIR.mkdir(exist_ok=True)
     candidates_dir = MODELS_DIR / "candidates"
     candidates_dir.mkdir(exist_ok=True)

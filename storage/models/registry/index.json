@@ -112,6 +112,88 @@
       },
       "artifact": "models/registry/baseline-e3c7a53e273b/model.joblib",
       "metadata": "models/registry/baseline-e3c7a53e273b/metadata.json"
+    },
+    {
+      "version": "optimized-cec05f38cf0c",
+      "model_name": "xgboost_optimized",
+      "model_sha256": "bd7083019bf6becff11d9f132ac0166d5e79650da1cbf09d854e632d91c774f5",
+      "dataset_manifest_sha256": "cec05f38cf0ccb71501864d85478bf5824ec83ade41e8e1cc1d8aa1b71cfdb46",
+      "validation_metrics": {
+        "threshold": 0.010064046857878556,
+        "precision": 0.5909677419354838,
+        "recall": 0.9849462365591398,
+        "specificity": 0.8780300115429012,
+        "balanced_accuracy": 0.9314881240510204,
+        "f1": 0.7387096774193549,
+        "mcc": 0.7122864968463924,
+        "roc_auc": 0.9845614731886125,
+        "pr_auc": 0.9260335003827362,
+        "brier": 0.03981322235854513,
+        "tn": 2282,
+        "fp": 317,
+        "fn": 7,
+        "tp": 458,
+        "business_cost": 228500.0,
+        "business_cost_per_1000": 74575.7180156658
+      },
+      "artifact": "models/registry/optimized-cec05f38cf0c/model.joblib",
+      "metadata": "models/registry/optimized-cec05f38cf0c/metadata.json"
+    },
+    {
+      "version": "optimized-709c75d8d180",
+      "model_name": "xgboost_optimized",
+      "model_sha256": "d26d7f18849317f63ab2f45c1b124caf2c0a404cc50384c2ed85bd401c82f795",
+      "dataset_manifest_sha256": "709c75d8d18025d47658dae5ca9957d675ef55b70c54e050c804f6000ea3681a",
+      "validation_metrics": {
+        "threshold": 0.06999999999999999,
+        "precision": 0.6491994177583698,
+        "recall": 0.9591397849462365,
+        "specificity": 0.9072720277029627,
+        "balanced_accuracy": 0.9332059063245997,
+        "f1": 0.7743055555555556,
+        "mcc": 0.7453513143331062,
+        "roc_auc": 0.9845805044951119,
+        "pr_auc": 0.9263232708374818,
+        "brier": 0.03842484162395194,
+        "tn": 2358,
+        "fp": 241,
+        "fn": 19,
+        "tp": 446,
+        "business_cost": 310500.0,
+        "business_cost_per_1000": 101338.12010443864
+      },
+      "artifact": "models/registry/optimized-709c75d8d180/model.joblib",
+      "metadata": "models/registry/optimized-709c75d8d180/metadata.json"
+    },
+    {
+      "version": "baseline-2979abf273c4",
+      "model_name": "random_forest",
+      "model_sha256": "44843e6de638b6141370da45f559e1299018691dd7a7cb6c70b0ef096c23981d",
+      "dataset_manifest_sha256": "2979abf273c43d175b197185912fe824d39c28584c47409435123fe470daae95",
+      "validation_metrics": {
+        "name": "random_forest",
+        "threshold_source": "dedicated calibration engines",
+        "calibration_pr_auc": 0.9598626053618143,
+        "calibration_recall": 0.9913978494623656,
+        "threshold": 0.13,
+        "precision": 0.6579710144927536,
+        "recall": 0.9763440860215054,
+        "specificity": 0.9091958445555983,
+        "balanced_accuracy": 0.9427699652885518,
+        "f1": 0.7861471861471861,
+        "mcc": 0.760628970486397,
+        "roc_auc": 0.9889593598861431,
+        "pr_auc": 0.9494418594143065,
+        "brier": 0.02818380048352656,
+        "tn": 2363,
+        "fp": 236,
+        "fn": 11,
+        "tp": 454,
+        "business_cost": 228000.0,
+        "business_cost_per_1000": 74412.53263707571
+      },
+      "artifact": "models/registry/baseline-2979abf273c4/model.joblib",
+      "metadata": "models/registry/baseline-2979abf273c4/metadata.json"
     }
   ]
 }

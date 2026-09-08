@@ -22,7 +22,7 @@ cd predictmaint-ai
 
 ### 2. Configuration des variables d'environnement
 
-Créer un fichier `.env` à la racine :
+Créer un fichier **.env** à la racine :
 
 ```env
 # PostgreSQL
@@ -64,17 +64,17 @@ Cette commande démarre :
 docker-compose ps
 ```
 
-Tous les services doivent être dans l'état `Up` (healthy).
+Tous les services doivent être dans l'état **Up** (healthy).
 
 ### 5. Accéder aux interfaces
 
 | Service | URL | Credentials |
 |---------|-----|-------------|
-| **Dashboard React** | http://localhost:3000 | Aucun |
-| **API Documentation** | http://localhost:8000/docs | Aucun |
-| **Airflow** | http://localhost:8080 | admin / admin |
-| **MLflow** | http://localhost:5000 | Aucun |
-| **Grafana** | http://localhost:3000 | admin / admin |
+| **Dashboard React** | http://localhost:3002 | Aucun |
+| **API Documentation** | http://localhost:8001/docs | Aucun |
+| **Airflow** | http://localhost:8081 | admin / admin |
+| **MLflow** | http://localhost:5001 | Aucun |
+| **Grafana** | http://localhost:3001 | admin / admin |
 | **Prometheus** | http://localhost:9090 | Aucun |
 
 ---
@@ -91,8 +91,8 @@ python -m src.data.prepare
 ```
 
 Ou via Airflow :
-1. Accéder à http://localhost:8080
-2. Activer le DAG `pipeline_1_etl_ingestion`
+1. Accéder à http://localhost:8081
+2. Activer le DAG **pipeline_1_etl_ingestion**
 3. Déclencher manuellement ou attendre la planification (@daily)
 
 ### Pipeline 2 : Training & MLOps
@@ -114,7 +114,7 @@ python -m src.models.evaluate
 ```
 
 Ou via Airflow :
-1. Activer le DAG `pipeline_2_training_mlops`
+1. Activer le DAG **pipeline_2_training_mlops**
 2. Ce pipeline attend automatiquement la fin du Pipeline 1
 3. Planification : @weekly
 
@@ -125,7 +125,7 @@ Ou via Airflow :
 **Tester l'API manuellement** :
 
 ```bash
-curl -X POST http://localhost:8000/predict \
+curl -X POST http://localhost:8001/predict \
   -H "Content-Type: application/json" \
   -d '{
     "engine_id": 1,
@@ -164,7 +164,7 @@ pip install -r requirements-api.txt
 uvicorn main:app --reload
 ```
 
-L'API sera accessible sur http://localhost:8000
+L'API sera accessible sur http://localhost:8001
 
 ### Tests
 
@@ -182,8 +182,8 @@ pytest tests/ -v
 
 ### Grafana
 
-1. Accéder à http://localhost:3000
-2. Login : `admin` / `admin`
+1. Accéder à http://localhost:3001
+2. Login : **admin** / **admin**
 3. Dashboards préconfigurés :
    - **MLOps Overview** : Vue d'ensemble du système
    - **Model Performance** : Métriques des modèles
@@ -198,7 +198,7 @@ Accéder à http://localhost:9090 pour :
 
 ### MLflow
 
-Accéder à http://localhost:5000 pour :
+Accéder à http://localhost:5001 pour :
 - Comparer les expérimentations
 - Visualiser les métriques d'entraînement
 - Télécharger les artefacts de modèles
@@ -226,12 +226,12 @@ python -m src.models.optimize
 python -m src.models.evaluate
 
 # 6. Vérifier dans MLflow
-open http://localhost:5000
+open http://localhost:5001
 ```
 
 ### Workflow 2 : Prédiction Interactive
 
-1. Accéder au dashboard : http://localhost:3000
+1. Accéder au dashboard : http://localhost:3002
 2. Sélectionner un moteur dans l'onglet "Démonstration prédictive"
 3. Ajuster le cycle avec le slider
 4. Cliquer sur "Analyser le risque"
@@ -240,7 +240,7 @@ open http://localhost:5000
 
 ### Workflow 3 : Réentraînement Automatique
 
-1. Accéder au dashboard : http://localhost:3000
+1. Accéder au dashboard : http://localhost:3002
 2. Onglet "Réentraînement automatique"
 3. Télécharger l'exemple CSV
 4. Upload le fichier avec de nouvelles données
@@ -285,14 +285,14 @@ python -m src.models.train
 ### Airflow : DAG non visible
 
 1. Vérifier les erreurs de syntaxe Python dans le DAG
-2. Vérifier les logs : `docker-compose logs airflow-scheduler`
+2. Vérifier les logs : **docker-compose logs airflow-scheduler**
 3. Rafraîchir la liste des DAGs dans l'interface Airflow
 
 ### Dashboard React : Erreur de connexion API
 
 ```bash
 # Vérifier que l'API est accessible
-curl http://localhost:8000/health
+curl http://localhost:8001/health
 
 # Vérifier les variables d'environnement React
 cat pipelines/3_inference_ihm/frontend/.env
@@ -315,18 +315,18 @@ docker-compose down -v
 
 ## Prochaines Étapes
 
-1. **Personnaliser les hyperparamètres** : Modifier `src/config.py`
-2. **Ajouter des modèles** : Étendre `src/models/pipelines.py`
-3. **Configurer GCP** : Suivre `infrastructure/deployment/gcp/`
-4. **Créer des dashboards Grafana** : Personnaliser `infrastructure/monitoring/grafana/`
-5. **Automatiser avec CI/CD** : Configurer `.github/workflows/`
+1. **Personnaliser les hyperparamètres** : Modifier **src/config.py**
+2. **Ajouter des modèles** : Étendre **src/models/pipelines.py**
+3. **Configurer GCP** : Suivre **infrastructure/deployment/gcp/**
+4. **Créer des dashboards Grafana** : Personnaliser **infrastructure/monitoring/grafana/**
+5. **Automatiser avec CI/CD** : Configurer **.github/workflows/**
 
 ---
 
 ## Documentation
 
 - **Architecture complète** : [ARCHITECTURE.md](ARCHITECTURE.md)
-- **API Documentation** : http://localhost:8000/docs
+- **API Documentation** : http://localhost:8001/docs
 - **Airflow Documentation** : https://airflow.apache.org/
 - **MLflow Documentation** : https://mlflow.org/
 - **React Documentation** : https://react.dev/
@@ -336,6 +336,6 @@ docker-compose down -v
 ## Support
 
 Pour toute question ou problème :
-1. Consulter la documentation complète dans `ARCHITECTURE.md`
+1. Consulter la documentation complète dans **ARCHITECTURE.md**
 2. Vérifier les logs des conteneurs
 3. Consulter les issues GitHub du projet

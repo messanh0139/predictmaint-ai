@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-: "${GCP_PROJECT_ID:?Set GCP_PROJECT_ID}"
-
-sed "s#__PROJECT_ID__#${GCP_PROJECT_ID}#g" \
-  /etc/grafana/provisioning/datasources/cloud-monitoring.yml.template \
-  > /etc/grafana/provisioning/datasources/cloud-monitoring.yml
+if [ -n "${GCP_PROJECT_ID:-}" ]; then
+  sed "s#__PROJECT_ID__#${GCP_PROJECT_ID}#g" \
+    /etc/grafana/provisioning/datasources/cloud-monitoring.yml.template \
+    > /etc/grafana/provisioning/datasources/cloud-monitoring.yml
+fi
 
 /run.sh &
 GRAFANA_PID=$!

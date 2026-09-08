@@ -48,7 +48,7 @@ def init_postgresql():
     """Crée les tables vides dans PostgreSQL"""
     logger.info("Initialisation de PostgreSQL")
 
-    db_url = os.getenv("POSTGRESQL_URL", "postgresql://postgres:postgres@localhost:5432/predictmaint")
+    db_url = os.getenv("POSTGRESQL_URL", "postgresql://postgres:postgres@localhost:5433/predictmaint")
     engine = create_engine(db_url)
 
     with engine.connect() as conn:

@@ -40,14 +40,14 @@ npm run build
 
 ## Variables d'environnement
 
-Créer un fichier `.env` à la racine :
+Créer un fichier **.env** à la racine :
 
 ```env
-REACT_APP_API_URL=http://localhost:8000
+REACT_APP_API_URL=http://localhost:8001
 REACT_APP_PROMETHEUS_URL=http://localhost:9090
-REACT_APP_GRAFANA_URL=http://localhost:3000
-REACT_APP_MLFLOW_URL=http://localhost:5000
-REACT_APP_API_DOCS_URL=http://localhost:8000/docs
+REACT_APP_GRAFANA_URL=http://localhost:3001
+REACT_APP_MLFLOW_URL=http://localhost:5001
+REACT_APP_API_DOCS_URL=http://localhost:8001/docs
 REACT_APP_DATA_PATH=/data/raw/test_FD001.txt
 REACT_APP_METADATA_PATH=/models/model_metadata.json
 REACT_APP_METRICS_PATH=/models/test_metrics.json
@@ -77,4 +77,4 @@ src/
 
 L'application est containerisée et s'intègre dans l'écosystème MLOps complet via Docker Compose.
 
-Voir `infrastructure/deployment/Dockerfile.dashboard` pour les détails du build.
+Voir **infrastructure/deployment/Dockerfile.dashboard** pour les détails du build.

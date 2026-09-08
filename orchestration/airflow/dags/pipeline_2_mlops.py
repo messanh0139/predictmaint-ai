@@ -2,18 +2,14 @@
 
 from __future__ import annotations
 
-import sys
+import os
 from datetime import datetime, timedelta
-from pathlib import Path
 
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
-from airflow.sensors.external_task import ExternalTaskSensor
-
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
-
-from src.pipelines.retrain import main as retrain_pipeline
+from airflow.providers.docker.operators.docker import DockerOperator
+from docker.types import Mount
 
 default_args = {
     'owner': 'ml-team',
@@ -29,7 +25,8 @@ dag = DAG(
     'pipeline_2_training_mlops',
     default_args=default_args,
     description='Pipeline MLOps pour entraînement et versioning',
-    schedule_interval='@weekly',
+    # Même raison que pipeline_1_etl.py : déclenchement à la main uniquement.
+    schedule_interval=None,
     catchup=False,
     tags=['mlops', 'training', 'pipeline-2'],
 )
@@ -40,22 +37,6 @@ def extract_from_postgresql(**context):
     print("Extraction depuis PostgreSQL")
     print("Données extraites")
     return {"status": "extracted"}
-
-
-def run_complete_retrain(**context):
-    # Pipeline complet de réentraînement avec optimisation
-    import os
-    print("Démarrage du pipeline complet avec optimisation")
-
-    # Configuration environnement
-    os.environ['INCLUDE_PRODUCTION_FEEDBACK'] = os.getenv('INCLUDE_PRODUCTION_FEEDBACK', '1')
-    os.environ['MLFLOW_TRACKING_URI'] = os.getenv('MLFLOW_TRACKING_URI', 'http://mlflow:5000')
-
-    # Exécution pipeline unifié avec optimisation (30 trials Optuna)
-    retrain_pipeline(optimize=True, trials=30)
-
-    print("Pipeline complet terminé avec succès")
-    return {"status": "completed", "optimize": True, "trials": 30}
 
 
 def register_to_gcp(**context):
@@ -71,25 +52,32 @@ def track_with_mlflow(**context):
     print("Expérimentation enregistrée")
 
 
-wait_for_pipeline_1 = ExternalTaskSensor(
-    task_id='wait_for_etl_completion',
-    external_dag_id='pipeline_1_etl_ingestion',
-    external_task_id='validate_pipeline',
-    dag=dag,
-    mode='poke',
-    timeout=3600,
-    poke_interval=300,
-)
-
 task_extract = PythonOperator(
     task_id='extract_from_postgresql',
     python_callable=extract_from_postgresql,
     dag=dag,
 )
 
-task_retrain = PythonOperator(
+task_retrain = DockerOperator(
     task_id='run_complete_retrain',
-    python_callable=run_complete_retrain,
+    # Image de l'api (Python 3.11 + librairies ML) car Airflow tourne en Python 3.8
+    image='deployment-api:latest',
+    command='python -m src.pipelines.retrain --optimize --trials 30',
+    network_mode='deployment_mlops-network',
+    mount_tmp_dir=False,
+    auto_remove='success',
+    environment={
+        'MLFLOW_TRACKING_URI': 'http://mlflow:5000',
+        'INCLUDE_PRODUCTION_FEEDBACK': os.getenv('INCLUDE_PRODUCTION_FEEDBACK', '0'),
+        'PREDICTION_BUCKET': os.getenv('PREDICTION_BUCKET', ''),
+    },
+    mounts=[
+        Mount(
+            source=f"{os.environ['HOST_PROJECT_ROOT']}/storage",
+            target='/app/storage',
+            type='bind',
+        ),
+    ],
     dag=dag,
 )
 
@@ -111,4 +99,4 @@ task_validate = BashOperator(
     dag=dag,
 )
 
-wait_for_pipeline_1 >> task_extract >> task_retrain >> [task_register, task_mlflow] >> task_validate
+task_extract >> task_retrain >> [task_register, task_mlflow] >> task_validate

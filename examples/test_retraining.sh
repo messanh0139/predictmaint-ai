@@ -14,7 +14,7 @@ RED='\033[0;31m'
 NC='\033[0m' 
 
 # Variables
-API_URL="http://localhost:8000"
+API_URL="http://localhost:8001"
 DEMO_FILE="demo_nouvelles_donnees.csv"
 
 echo -e "${BLUE}1. Vérification du fichier de démonstration${NC}"

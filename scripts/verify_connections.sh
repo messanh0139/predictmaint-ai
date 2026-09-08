@@ -43,11 +43,11 @@ echo ""
 
 # Vérification des services de base
 echo "--- Services de base ---"
-check_url "API Health" "http://localhost:8000/health" "200"
-check_url "API Docs" "http://localhost:8000/docs" "200"
-check_url "Dashboard" "http://localhost:3000" "200"
-check_url "MLflow" "http://localhost:5000" "200"
-check_url "Airflow" "http://localhost:8080" "200"
+check_url "API Health" "http://localhost:8001/health" "200"
+check_url "API Docs" "http://localhost:8001/docs" "200"
+check_url "Dashboard" "http://localhost:3002" "200"
+check_url "MLflow" "http://localhost:5001" "200"
+check_url "Airflow" "http://localhost:8081" "200"
 check_url "Prometheus" "http://localhost:9090" "200"
 check_url "Grafana" "http://localhost:3001" "302"
 echo ""
@@ -55,17 +55,17 @@ echo ""
 # Vérification des métriques Prometheus
 echo "--- Métriques Prometheus ---"
 echo -n "Vérification que Prometheus scrape l'API... "
-metrics=$(curl -s "http://localhost:9090/api/v1/targets" | grep -c "api:8000")
+metrics=$(curl -s "http://localhost:9090/api/v1/targets" | grep -c "api:8080")
 if [ "$metrics" -gt 0 ]; then
     echo "OK (target configuré)"
 else
-    echo "ERREUR (target api:8000 non trouvé)"
+    echo "ERREUR (target api:8080 non trouvé)"
 fi
 echo ""
 
 # Vérification que l'API expose des métriques
 echo -n "Vérification que l'API expose des métriques... "
-api_metrics=$(curl -s "http://localhost:8000/metrics" | grep -c "predictmaint_")
+api_metrics=$(curl -s "http://localhost:8001/metrics" | grep -c "predictmaint_")
 if [ "$api_metrics" -gt 0 ]; then
     echo "OK ($api_metrics métriques trouvées)"
 else
@@ -76,13 +76,13 @@ echo ""
 # Résumé
 echo "=== Résumé ==="
 echo "Services fonctionnels:"
-echo "  - API: http://localhost:8000"
-echo "  - Dashboard: http://localhost:3000"
+echo "  - API: http://localhost:8001"
+echo "  - Dashboard: http://localhost:3002"
 echo "  - Grafana: http://localhost:3001 (login: admin/admin)"
-echo "  - MLflow: http://localhost:5000"
-echo "  - Airflow: http://localhost:8080 (login: admin/admin)"
+echo "  - MLflow: http://localhost:5001"
+echo "  - Airflow: http://localhost:8081 (login: admin/admin)"
 echo "  - Prometheus: http://localhost:9090"
 echo ""
 echo "Pour générer des métriques dans Grafana:"
-echo "  python scripts/generate_predictions_for_grafana.py --api-url http://localhost:8000 --num 50"
+echo "  python scripts/generate_predictions_for_grafana.py --api-url http://localhost:8001 --num 50"
 echo ""

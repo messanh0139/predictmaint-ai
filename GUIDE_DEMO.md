@@ -25,7 +25,7 @@ Tous les services doivent être "Up".
 
 ```bash
 # Vérifier l'API
-curl http://localhost:8000/health
+curl http://localhost:8001/health
 ```
 
 Tu dois voir:
@@ -42,13 +42,13 @@ Tu dois voir:
 
 ### Étape 1: Accéder à Airflow
 
-1. Ouvrir dans le navigateur: http://localhost:8080
-2. Login: `admin`
-3. Mot de passe: `admin`
+1. Ouvrir dans le navigateur: http://localhost:8081
+2. Login: **admin**
+3. Mot de passe: **admin**
 
 ### Étape 2: Activer le DAG Pipeline 1 (ETL)
 
-1. Dans la liste des DAGs, chercher `pipeline_1_etl_ingestion`
+1. Dans la liste des DAGs, chercher **pipeline_1_etl_ingestion**
 2. Cliquer sur le bouton à gauche pour activer le DAG (il devient bleu)
 3. Cliquer sur le nom du DAG pour voir les détails
 4. Cliquer sur le bouton "Trigger DAG" (icône play en haut à droite)
@@ -94,7 +94,7 @@ SELECT COUNT(*) FROM train_features;  -- Doit afficher ~14000
 ### Étape 5: Activer le DAG Pipeline 2 (MLOps)
 
 1. Revenir à la page d'accueil Airflow
-2. Chercher `pipeline_2_training_mlops`
+2. Chercher **pipeline_2_training_mlops**
 3. Activer le DAG
 4. Cliquer sur "Trigger DAG"
 
@@ -111,7 +111,7 @@ L'exécution complète prend environ 15-20 minutes.
 
 ### Étape 6: Voir les résultats dans MLflow
 
-1. Ouvrir dans le navigateur: http://localhost:5000
+1. Ouvrir dans le navigateur: http://localhost:5001
 2. Tu verras toutes les expérimentations
 3. Cliquer sur une run pour voir les détails (métriques, paramètres, artefacts)
 
@@ -124,7 +124,7 @@ L'exécution complète prend environ 15-20 minutes.
 python scripts/generate_demo_data_with_drift.py
 ```
 
-Le fichier `demo_data_with_drift.csv` est créé avec:
+Le fichier **demo_data_with_drift.csv** est créé avec:
 - 50 moteurs
 - Drift progressif de 0% à 40%
 - IDs moteurs > 5000000 pour éviter les overlaps
@@ -133,7 +133,7 @@ Le fichier `demo_data_with_drift.csv` est créé avec:
 
 ```bash
 # Uploader les données et déclencher le réentraînement
-curl -X POST http://localhost:8000/retrain/upload \
+curl -X POST http://localhost:8001/retrain/upload \
   -F "file=@demo_data_with_drift.csv"
 ```
 
@@ -160,7 +160,7 @@ Le système va automatiquement:
 
 ```bash
 # Voir le statut en temps réel
-curl http://localhost:8000/retrain/status
+curl http://localhost:8001/retrain/status
 ```
 
 Réponse pendant l'exécution:
@@ -198,7 +198,7 @@ Le réentraînement prend environ 15-20 minutes.
 
 ```bash
 # Vérifier que l'API a chargé le nouveau modèle
-curl http://localhost:8000/health
+curl http://localhost:8001/health
 ```
 
 Tu verras le nouveau modèle dans la réponse.
@@ -209,7 +209,7 @@ C'est la méthode la plus visuelle pour une démo.
 
 ### Étape 1: Ouvrir le Dashboard
 
-Navigateur: http://localhost:3000
+Navigateur: http://localhost:3002
 
 ### Étape 2: Aller dans l'onglet Réentraînement
 
@@ -219,12 +219,12 @@ Navigateur: http://localhost:3000
 ### Étape 3: Télécharger le fichier exemple
 
 1. Cliquer sur "Télécharger fichier exemple CSV"
-2. Un fichier `example_retraining_data.csv` sera téléchargé
+2. Un fichier **example_retraining_data.csv** sera téléchargé
 
 ### Étape 4: Uploader les données
 
 1. Cliquer sur "Choisir un fichier"
-2. Sélectionner le fichier (exemple ou `demo_data_with_drift.csv`)
+2. Sélectionner le fichier (exemple ou **demo_data_with_drift.csv**)
 3. Cliquer sur "Lancer le réentraînement"
 
 ### Étape 5: Suivre la progression
@@ -252,7 +252,7 @@ Quand c'est terminé, le dashboard affiche:
 ```bash
 # Générer 50 prédictions pour alimenter Grafana
 python scripts/generate_predictions_for_grafana.py \
-  --api-url http://localhost:8000 \
+  --api-url http://localhost:8001 \
   --num 50
 ```
 
@@ -261,8 +261,8 @@ Le script fait 50 prédictions avec des données aléatoires.
 ### Étape 2: Ouvrir Grafana
 
 1. Navigateur: http://localhost:3001
-2. Login: `admin`
-3. Mot de passe: `admin`
+2. Login: **admin**
+3. Mot de passe: **admin**
 
 ### Étape 3: Voir le dashboard
 
@@ -281,7 +281,7 @@ Le script fait 50 prédictions avec des données aléatoires.
 
 ```bash
 # Faire une prédiction
-curl -X POST http://localhost:8000/predict \
+curl -X POST http://localhost:8001/predict \
   -H "Content-Type: application/json" \
   -d '{
     "engine_id": 999999,
@@ -307,7 +307,7 @@ Réponse:
 
 ### Via le Dashboard
 
-1. Aller sur http://localhost:3000
+1. Aller sur http://localhost:3002
 2. Onglet "Démonstration prédictive"
 3. Sélectionner un moteur dans la liste
 4. Cliquer sur "Prédire"

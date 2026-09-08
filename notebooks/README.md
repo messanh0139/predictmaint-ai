@@ -1,10 +1,10 @@
 # Parcours des notebooks
 
-Les notebooks sont volontairement pédagogiques : ils montrent les opérations importantes de manière explicite, puis pointent vers le code industrialisé dans `src/`.
+Les notebooks sont volontairement pédagogiques : ils montrent les opérations importantes de manière explicite, puis pointent vers le code industrialisé dans **src/**.
 
 1. **01_eda.ipynb** : chargement manuel avec **pd.read_csv**, qualité, cible, split et EDA TRAIN-only.
-2. **02_feature_engineering.ipynb` — split avant transformation, features causales et test de causalité.
-3. `03_feature_selection.ipynb** : cinq méthodes de sélection, fit sur TRAIN uniquement.
+2. **02_feature_engineering.ipynb** — split avant transformation, features causales et test de causalité.
+3. **03_feature_selection.ipynb** : cinq méthodes de sélection, fit sur TRAIN uniquement.
 4. **04_model_training.ipynb** : baseline explicite, calibration du seuil et comparaison des modèles.
 5. **05_model_evaluation.ipynb** : optimisation/promotion puis ouverture contrôlée du holdout externe.
 6. **06_monitoring.ipynb** : PSI, drift, performance différée et boucle MLOps.

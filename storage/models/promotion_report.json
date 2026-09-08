@@ -1,7 +1,7 @@
 {
-  "promoted": true,
+  "promoted": false,
   "guardrails_ok": true,
-  "candidate_better_on_locked_validation": true,
+  "candidate_better_on_locked_validation": false,
   "champion": {
     "name": "random_forest",
     "validation_metrics": {
@@ -18,7 +18,7 @@
       "mcc": 0.760628970486397,
       "roc_auc": 0.9889593598861431,
       "pr_auc": 0.9494418594143065,
-      "brier": 0.028183800483526564,
+      "brier": 0.02818380048352656,
       "tn": 2363,
       "fp": 236,
       "fn": 11,
@@ -30,22 +30,22 @@
   "candidate": {
     "name": "xgboost_optimized",
     "validation_metrics": {
-      "threshold": 0.002844517994672067,
-      "precision": 0.5636363636363636,
-      "recall": 1.0,
-      "specificity": 0.8614851866102347,
-      "balanced_accuracy": 0.9307425933051173,
-      "f1": 0.7209302325581395,
-      "mcc": 0.6968244957717739,
-      "roc_auc": 0.9881335666737,
-      "pr_auc": 0.9459492868527207,
-      "brier": 0.03116403697351666,
-      "tn": 2239,
-      "fp": 360,
-      "fn": 0,
-      "tp": 465,
-      "business_cost": 180000.0,
-      "business_cost_per_1000": 58746.7362924282
+      "threshold": 0.008935342561453579,
+      "precision": 0.5843989769820972,
+      "recall": 0.9827956989247312,
+      "specificity": 0.8749519045786841,
+      "balanced_accuracy": 0.9288738017517076,
+      "f1": 0.7329591018444266,
+      "mcc": 0.7058752148957471,
+      "roc_auc": 0.9887268469676096,
+      "pr_auc": 0.948233654913159,
+      "brier": 0.03130997233137633,
+      "tn": 2274,
+      "fp": 325,
+      "fn": 8,
+      "tp": 457,
+      "business_cost": 242500.0,
+      "business_cost_per_1000": 79144.908616188
     }
   },
   "decision_rule": "validation only; recall guardrail -> business cost -> PR-AUC -> Brier"

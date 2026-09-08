@@ -4,9 +4,9 @@
 
 - Train : 20 631 observations, 100 moteurs, 26 colonnes brutes.
 - Test : 13 096 observations, 100 moteurs, 26 colonnes brutes.
-- `RUL_FD001.txt` : 100 lignes attendues ; les valeurs de vérité terrain restent fermées pendant l'EDA et ne sont ouvertes qu'à l'évaluation externe finale.
+- **RUL_FD001.txt** : 100 lignes attendues ; les valeurs de vérité terrain restent fermées pendant l'EDA et ne sont ouvertes qu'à l'évaluation externe finale.
 - Valeurs manquantes : 0.
-- Doublons `(engine_id, cycle)` : 0.
+- Doublons **(engine_id, cycle)** : 0.
 - Cycles non monotones par moteur : 0.
 
 ## Durée des trajectoires train
@@ -20,7 +20,7 @@
 
 ## Cible métier
 
-La cible est `failure_within_30_cycles = 1` si `RUL <= 30`.
+La cible est **failure_within_30_cycles = 1** si **RUL <= 30**.
 
 Après le split par moteur, l'analyse supervisée est menée sur **TRAIN uniquement** (70 moteurs) :
 
@@ -34,13 +34,13 @@ L'accuracy seule serait donc trompeuse. Le projet privilégie recall, F1, PR-AUC
 
 Sur la partition TRAIN de développement, les colonnes suivantes ont une variance nulle :
 
-`setting_3`, `sensor_1`, `sensor_5`, `sensor_10`, `sensor_16`, `sensor_18`, `sensor_19`.
+**setting_3**, **sensor_1**, **sensor_5**, **sensor_10**, **sensor_16**, **sensor_18**, **sensor_19**.
 
 Elles sont retirées automatiquement par la phase de sélection de variables.
 
 ## Signaux bruts les plus liés au RUL
 
-Sur TRAIN uniquement, les corrélations absolues brutes les plus élevées avec le RUL concernent notamment `sensor_11`, `sensor_4`, `sensor_12`, `sensor_7`, `sensor_15`, `sensor_21`, `sensor_20`, `sensor_2`, `sensor_17` et `sensor_3`.
+Sur TRAIN uniquement, les corrélations absolues brutes les plus élevées avec le RUL concernent notamment **sensor_11**, **sensor_4**, **sensor_12**, **sensor_7**, **sensor_15**, **sensor_21**, **sensor_20**, **sensor_2**, **sensor_17** et **sensor_3**.
 
 Cette observation guide l'exploration mais ne remplace pas la sélection data-driven réalisée uniquement sur le TRAIN.
 

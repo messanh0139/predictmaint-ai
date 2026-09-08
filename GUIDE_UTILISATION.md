@@ -80,7 +80,7 @@ python scripts/init_databases.py
 USE_DATABASES=1 python -m src.data.prepare
 
 # 3. Ou utiliser Airflow (active automatiquement le mode complet)
-# http://localhost:8080 - DAG pipeline_1_etl_ingestion
+# http://localhost:8081 - DAG pipeline_1_etl_ingestion
 ```
 
 Voir GUIDE_DATABASES.md pour plus de détails sur le mode complet.
@@ -91,12 +91,12 @@ Une fois démarré, vous pouvez accéder à :
 
 | Service | URL | Description |
 |---------|-----|-------------|
-| Dashboard | http://localhost:3000 | Interface utilisateur |
-| API | http://localhost:8000 | API de prédiction |
-| API Docs | http://localhost:8000/docs | Documentation interactive |
+| Dashboard | http://localhost:3002 | Interface utilisateur |
+| API | http://localhost:8001 | API de prédiction |
+| API Docs | http://localhost:8001/docs | Documentation interactive |
 | Grafana | http://localhost:3001 | Monitoring (login: admin/admin) |
-| MLflow | http://localhost:5000 | Tracking expérimentations |
-| Airflow | http://localhost:8080 | Orchestration (login: admin/admin) |
+| MLflow | http://localhost:5001 | Tracking expérimentations |
+| Airflow | http://localhost:8081 | Orchestration (login: admin/admin) |
 | Prometheus | http://localhost:9090 | Base de métriques |
 
 ### Arrêter les services
@@ -148,7 +148,7 @@ python scripts/generate_predictions_for_grafana.py \
 
 # En local
 python scripts/generate_predictions_for_grafana.py \
-  --api-url http://localhost:8000 \
+  --api-url http://localhost:8001 \
   --num 50
 ```
 

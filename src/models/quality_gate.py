@@ -26,7 +26,7 @@ def evaluate_gate(metadata: dict) -> dict:
 
 
 def main() -> None:
-    # Lit les métadonnées du modèle champion, applique la porte de qualité et
+    # Lit les métadonnées du modèle champion et vérifie qu'il passe la porte de qualité
     metadata = json.loads((MODELS_DIR / "model_metadata.json").read_text(encoding="utf-8"))
     result = evaluate_gate(metadata)
     (MODELS_DIR / "quality_gate.json").write_text(json.dumps(result, indent=2), encoding="utf-8")

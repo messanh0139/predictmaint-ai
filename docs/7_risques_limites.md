@@ -2,7 +2,7 @@
 
 | Risque | Impact | Mesure |
 |---|---|---|
-| Data leakage par moteur | scores artificiels | split par `engine_id` avant features |
+| Data leakage par moteur | scores artificiels | split par **engine_id** avant features |
 | Fuite temporelle | modèle irréaliste | features causales + tests de mutation futur |
 | Sur-optimisation du seuil | généralisation réduite | partition CALIBRATION dédiée |
 | Sur-optimisation modèle | validation contaminée | Group CV sur TRAIN + validation verrouillée |

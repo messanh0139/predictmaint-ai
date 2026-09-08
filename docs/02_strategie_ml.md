@@ -4,7 +4,7 @@
 
 Le besoin est traduit en classification binaire :
 
-`P(RUL <= 30 | informations disponibles jusqu'au cycle t)`.
+**P(RUL <= 30 | informations disponibles jusqu'au cycle t)**.
 
 La cible vaut 1 lorsqu'il reste au plus 30 cycles avant la fin de la trajectoire.
 
@@ -46,7 +46,7 @@ Complémentaires : precision, specificity, balanced accuracy, MCC, ROC-AUC, Brie
 
 ## Gestion du déséquilibre
 
-- `class_weight="balanced"` / `balanced_subsample` ;
-- `scale_pos_weight` pour XGBoost ;
+- **class_weight="balanced"** / **balanced_subsample** ;
+- **scale_pos_weight** pour XGBoost ;
 - métriques adaptées ;
 - seuil calibré métier.

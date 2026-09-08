@@ -92,7 +92,7 @@ Infrastructure serverless scalable, hautement disponible et économique pour la 
 | Logs locaux | Logs persistés GitHub + Cloud Logging |
 | 1 serveur dédié | Serverless (0 coût au repos) |
 
-**Workflow Production (`.github/workflows/deploy.yml`)** :
+**Workflow Production (**.github/workflows/deploy.yml**)** :
 ```yaml
 on:
   push:
@@ -113,9 +113,9 @@ jobs:
 #### 2. Stockage : GCS (Google Cloud Storage)
 
 **Remplace PostgreSQL + MongoDB** :
-- `gs://predictmaint-models/` : Artefacts modèles
-- `gs://predictmaint-predictions/` : Prédictions production
-- `gs://predictmaint-feedback/` : Vérité terrain
+- **gs://predictmaint-models/** : Artefacts modèles
+- **gs://predictmaint-predictions/** : Prédictions production
+- **gs://predictmaint-feedback/** : Vérité terrain
 
 **Avantages** :
 - Serverless (pas de base à maintenir)
@@ -129,9 +129,9 @@ jobs:
 
 | Service | URL | Auto-scaling | Coût au repos |
 |---------|-----|--------------|---------------|
-| API FastAPI | `https://predictmaint-api-xxx.run.app` | 0-5 instances | 0€ |
-| Dashboard React | `https://predictmaint-dashboard-xxx.run.app` | 0-3 instances | 0€ |
-| Grafana | `https://predictmaint-grafana-xxx.run.app` | 0-2 instances | 0€ |
+| API FastAPI | **https://predictmaint-api-xxx.run.app** | 0-5 instances | 0€ |
+| Dashboard React | **https://predictmaint-dashboard-xxx.run.app** | 0-3 instances | 0€ |
+| Grafana | **https://predictmaint-grafana-xxx.run.app** | 0-2 instances | 0€ |
 
 **Cloud Run Job** (retraining) :
 - Exécuté à la demande (GitHub Actions ou Cloud Scheduler)
@@ -141,7 +141,7 @@ jobs:
 #### 4. Monitoring : Cloud Monitoring + Grafana
 
 **Cloud Monitoring** (natif GCP) :
-- Métriques custom : `custom.googleapis.com/predictmaint/*`
+- Métriques custom : **custom.googleapis.com/predictmaint/***
 - Logs centralisés (Cloud Logging)
 - Alerting intégré
 
@@ -164,7 +164,7 @@ jobs:
 | **Coût** | Gratuit (local) | Gratuit (2000 min/mois) |
 | **Scalabilité** | 1 worker | Illimitée |
 | **Maintenance** | Docker à maintenir | Zéro maintenance |
-| **Interface démo** | http://localhost:8080 | https://github.com/.../actions |
+| **Interface démo** | http://localhost:8081 | https://github.com/.../actions |
 
 **Verdict** : Pour la production et la démonstration professionnelle, GitHub Actions est **supérieur** à Airflow local.
 
@@ -205,16 +205,16 @@ jobs:
    docker-compose up -d
    ↓
 3. Accède Airflow local
-   http://localhost:8080
+   http://localhost:8081
    ↓
 4. Déclenche DAG manuellement
    Pipeline 1 (ETL) puis Pipeline 2 (MLOps)
    ↓
 5. Vérifie MLflow local
-   http://localhost:5000
+   http://localhost:5001
    ↓
 6. Teste API local
-   http://localhost:8000/docs
+   http://localhost:8001/docs
    ↓
 7. Capture d'écran pour mémoire
 ```
@@ -307,7 +307,7 @@ gcloud scheduler jobs create http predictmaint-weekly-retrain \
   --oauth-service-account-email=predictmaint-deployer@PROJECT_ID.iam.gserviceaccount.com
 ```
 
-Cela remplace complètement le `@weekly` d'Airflow par une solution cloud-native.
+Cela remplace complètement le **@weekly** d'Airflow par une solution cloud-native.
 
 ---
 
@@ -346,7 +346,7 @@ Cela remplace complètement le `@weekly` d'Airflow par une solution cloud-native
 |-----------|---------------------|------------------|
 | **Orchestration** | Airflow uniquement local | Airflow (dev) + GitHub Actions (prod) |
 | **Démo** | Screenshots uniquement | URLs publiques cliquables |
-| **Accessibilité** | localhost:8080 | https://github.com/user/project/actions |
+| **Accessibilité** | localhost:8081 | https://github.com/user/project/actions |
 | **Prédictions** | curl localhost | https://predictmaint-api-xxx.run.app/docs |
 | **Monitoring** | Grafana local | https://predictmaint-grafana-xxx.run.app |
 | **Infrastructure** | "à faire tourner" | Déjà déployée 24/7 |

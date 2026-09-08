@@ -11,6 +11,7 @@ google-cloud-storage>=2.18,<4
 google-cloud-monitoring>=2.21,<3
 pymongo>=4.6,<5
 sqlalchemy>=2.0,<3
+psycopg2-binary>=2.9,<3
 python-json-logger>=3,<4
 python-multipart>=0.0.9,<1
 optuna>=3.6,<5

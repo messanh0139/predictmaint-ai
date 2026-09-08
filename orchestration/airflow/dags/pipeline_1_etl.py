@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-import importlib.util
 import os
-import sys
 from datetime import datetime, timedelta
-from pathlib import Path
 
 from airflow import DAG
 from airflow.operators.bash import BashOperator
-from airflow.operators.python import PythonOperator
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
+from airflow.providers.docker.operators.docker import DockerOperator
+from docker.types import Mount
 
 default_args = {
     'owner': 'data-team',
@@ -26,59 +25,58 @@ dag = DAG(
     'pipeline_1_etl_ingestion',
     default_args=default_args,
     description='Pipeline ETL pour maintenance prédictive',
-    schedule_interval='@daily',
+    # Pas de planning : la machine ne tourne pas en continu, on déclenche à la main
+    schedule_interval=None,
     catchup=False,
     tags=['etl', 'ingestion', 'pipeline-1'],
 )
 
 
-def extract_to_mongodb(**context):
-    """Charge les données brutes dans MongoDB"""
-    sys.path.insert(0, str(Path('/opt/airflow')))
+HOST_PROJECT_ROOT = os.environ['HOST_PROJECT_ROOT']
+STORAGE_MOUNT = Mount(
+    source=f"{HOST_PROJECT_ROOT}/storage",
+    target='/app/storage',
+    type='bind',
+)
 
-    etl_path = Path('/opt/airflow/pipelines/1_etl_ingestion')
-
-    spec = importlib.util.spec_from_file_location(
-        "load_to_mongodb",
-        etl_path / "loading/load_to_mongodb.py"
-    )
-    mongodb_module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mongodb_module)
-    MongoDBLoader = mongodb_module.MongoDBLoader
-
-    spec = importlib.util.spec_from_file_location(
-        "load",
-        etl_path / "extraction/load.py"
-    )
-    load_module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(load_module)
-    load_train_fd001 = load_module.load_train_fd001
-
-    mongo_url = os.getenv("MONGODB_URL", "mongodb://admin:admin123@mongodb:27017/")
-    loader = MongoDBLoader(mongo_url)
-
-    train_data = load_train_fd001()
-    count = loader.load_raw_data(train_data, collection_name="train_raw")
-    loader.close()
-
-    print(f"MongoDB: {count} documents insérés")
-    return {"count": count}
-
-
-task_extract = PythonOperator(
+# Ces deux tâches tournent dans l'image de l'api, pas dans Airflow (dépendances manquantes)
+task_extract = DockerOperator(
     task_id='extract_to_mongodb',
-    python_callable=extract_to_mongodb,
+    image='deployment-api:latest',
+    # load_to_mongodb.py peut être lancé tel quel, il lit MONGODB_URL et charge les données
+    command='python pipelines/1_etl_ingestion/loading/load_to_mongodb.py',
+    working_dir='/app',
+    network_mode='deployment_mlops-network',
+    mount_tmp_dir=False,
+    auto_remove='success',
+    environment={
+        # Le dossier commence par un chiffre, "python -m" ne marche pas, d'où PYTHONPATH
+        'PYTHONPATH': '/app',
+        # Par défaut le script cherche MongoDB sur localhost, ici il faut le nom du service
+        'MONGODB_URL': 'mongodb://admin:admin123@mongodb:27017/',
+    },
+    mounts=[
+        STORAGE_MOUNT,
+        # Ce dossier n'est pas copié dans l'image de l'api, on le monte à part.
+        Mount(
+            source=f"{HOST_PROJECT_ROOT}/pipelines/1_etl_ingestion",
+            target='/app/pipelines/1_etl_ingestion',
+            type='bind',
+        ),
+    ],
     dag=dag,
 )
 
-task_prepare = BashOperator(
+task_prepare = DockerOperator(
     task_id='prepare_transform_load',
-    bash_command='cd /opt/airflow && USE_DATABASES=1 python -m src.data.prepare',
-    env={
-        'USE_DATABASES': '1',
-        'MONGODB_URL': 'mongodb://admin:admin123@mongodb:27017/',
-        'POSTGRESQL_URL': 'postgresql://postgres:postgres@postgresql:5432/predictmaint',
-    },
+    image='deployment-api:latest',
+    command='python -m src.data.prepare',
+    working_dir='/app',
+    network_mode='deployment_mlops-network',
+    mount_tmp_dir=False,
+    auto_remove='success',
+    environment={'USE_DATABASES': '1'},
+    mounts=[STORAGE_MOUNT],
     dag=dag,
 )
 
@@ -88,4 +86,11 @@ task_validate = BashOperator(
     dag=dag,
 )
 
-task_extract >> task_prepare >> task_validate
+# Déclenche pipeline_2 directement : en mode manuel, un capteur qui compare les dates ne marcherait pas
+task_trigger_pipeline_2 = TriggerDagRunOperator(
+    task_id='trigger_pipeline_2',
+    trigger_dag_id='pipeline_2_training_mlops',
+    dag=dag,
+)
+
+task_extract >> task_prepare >> task_validate >> task_trigger_pipeline_2
