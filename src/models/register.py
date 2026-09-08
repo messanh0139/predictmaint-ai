@@ -67,6 +67,14 @@ def register_local_model(
     )
     if promotes_local_champion:
         index["champion"] = version
+    elif current_champion_entry is not None:
+        # Ce candidat n'est pas le meilleur : on remet le vrai champion comme modèle actif
+        champion_dir = registry_dir / current_champion_entry["version"]
+        champion_model = champion_dir / "model.joblib"
+        champion_metadata = champion_dir / "metadata.json"
+        if champion_model.exists() and champion_metadata.exists():
+            shutil.copy2(champion_model, model_path)
+            shutil.copy2(champion_metadata, metadata_path)
     index_path.write_text(json.dumps(index, indent=2, ensure_ascii=False), encoding="utf-8")
     entry["local_champion_updated"] = promotes_local_champion
     return entry
@@ -82,8 +90,7 @@ def _current_mlflow_champion_metrics(client, model_registry_name: str) -> dict |
 
 
 def register_mlflow(model_path: Path, metadata_path: Path) -> dict:
-    # Enregistre une nouvelle version dans MLflow. L'alias
-    # "champion" ne bouge que si cette version est vraiment meilleure.
+    # Enregistre une nouvelle version dans MLflow, bouge l'alias champion si c'est mieux
     try:
         import mlflow
         import mlflow.sklearn
