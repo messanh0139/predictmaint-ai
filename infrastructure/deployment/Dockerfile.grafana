@@ -8,13 +8,15 @@ RUN apk add --no-cache jq
 # démarrage (grafana-entrypoint.sh) plutôt que provisionné par fichier, ce qui,
 # lui, fonctionne de façon fiable. Placé hors du dossier scanné par le
 # provisioner pour éviter qu'il ne réécrive la version importée par-dessus.
-COPY infrastructure/monitoring/grafana/dashboards/predictmaint-cloud-monitoring.json /var/lib/grafana/dashboards-source/predictmaint-cloud-monitoring.json
-COPY infrastructure/monitoring/grafana/dashboards/predictmaint.json /var/lib/grafana/dashboards/predictmaint.json
+# Dossiers sous /etc/grafana et pas /var/lib/grafana : ce dernier est écrasé
+# par le volume "grafana_data", donc un rebuild n'y changerait jamais rien.
+COPY infrastructure/monitoring/grafana/dashboards/predictmaint-cloud-monitoring.json /etc/grafana/dashboards-source/predictmaint-cloud-monitoring.json
+COPY infrastructure/monitoring/grafana/dashboards/predictmaint.json /etc/grafana/dashboards/predictmaint.json
 COPY infrastructure/monitoring/grafana/provisioning/dashboards/predictmaint.yml /etc/grafana/provisioning/dashboards/predictmaint.yml
 COPY infrastructure/monitoring/grafana/provisioning/datasources/cloud-monitoring.yml.template /etc/grafana/provisioning/datasources/cloud-monitoring.yml.template
 COPY infrastructure/deployment/gcp/grafana-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh \
-    && chown -R 472:472 /etc/grafana/provisioning /var/lib/grafana/dashboards /var/lib/grafana/dashboards-source
+    && chown -R 472:472 /etc/grafana/provisioning /etc/grafana/dashboards /etc/grafana/dashboards-source
 USER 472
 
 EXPOSE 3000

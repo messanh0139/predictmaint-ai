@@ -38,6 +38,17 @@ services:
       timeout: 5s
       retries: 5
 
+  # Métriques PostgreSQL pour Grafana (connexions, transactions, taille DB...)
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: predictmaint-postgres-exporter
+    environment:
+      - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgresql:5432/predictmaint?sslmode=disable
+    networks:
+      - mlops-network
+    depends_on:
+      - postgresql
+
   # Pipeline 2: MLOps & Training
   mlflow:
     build:
@@ -68,6 +79,8 @@ services:
       - GCP_PROJECT_ID=${GCP_PROJECT_ID}
       - GCP_BUCKET=${GCP_BUCKET}
       - MLFLOW_TRACKING_URI=http://mlflow:5000
+      # 30s en local pour voir le PSI se rafraîchir vite pendant une démo
+      - DRIFT_CHECK_INTERVAL_SECONDS=30
     volumes:
       - ../../storage:/app/storage
     networks:
@@ -91,7 +104,9 @@ services:
     ports:
       - "3002:8080"
     environment:
-      - REACT_APP_API_URL=http://api:8080
+      - REACT_APP_API_URL=http://localhost:8001
+      - REACT_APP_MLFLOW_URL=http://localhost:5001
+      - REACT_APP_API_DOCS_URL=http://localhost:8001/docs
     networks:
       - mlops-network
     depends_on:

@@ -42,12 +42,14 @@ window.RUNTIME_CONFIG = {
   REACT_APP_API_URL: "${REACT_APP_API_URL:-}",
   REACT_APP_MLFLOW_URL: "${REACT_APP_MLFLOW_URL:-}",
   REACT_APP_GRAFANA_URL: "${REACT_APP_GRAFANA_URL:-}",
-  REACT_APP_API_DOCS_URL: "${REACT_APP_API_URL:-}/docs",
+  REACT_APP_API_DOCS_URL: "${REACT_APP_API_DOCS_URL:-${REACT_APP_API_URL:-}/docs}",
   REACT_APP_DATA_PATH: "/data/raw/test_FD001.txt",
   REACT_APP_METADATA_PATH: "/models/model_metadata.json",
   REACT_APP_METRICS_PATH: "/models/test_metrics.json"
 };
 EOF
+# sans ça, nginx (utilisateur non-root) ne peut pas lire le fichier
+chmod 644 /usr/share/nginx/html/runtime-config.js
 
 echo "=== Configuration nginx générée ==="
 cat /etc/nginx/conf.d/default.conf

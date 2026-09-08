@@ -36,7 +36,7 @@ for _ in $(seq 1 15); do
   sleep 1
 done
 
-for dashboard_file in /var/lib/grafana/dashboards-source/*.json; do
+for dashboard_file in /etc/grafana/dashboards-source/*.json; do
   [ -f "${dashboard_file}" ] || continue
   jq -n --slurpfile dashboard "${dashboard_file}" --arg folderUid "${FOLDER_UID:-}" \
     '{dashboard: ($dashboard[0] | del(.id)), overwrite: true, folderUid: $folderUid}' \
