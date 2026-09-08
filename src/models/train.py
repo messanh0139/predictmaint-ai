@@ -198,8 +198,8 @@ def main() -> None:
         (PROCESSED_DIR / "split_manifest.json").read_text(encoding="utf-8")
     )
     runtime = runtime_metadata()
-    # Version = sha git court si disponible, sinon fallback sur le hash du dataset.
-    version_token = runtime["git_sha"][:12] if runtime["git_sha"] != "unknown" else split_manifest["manifest_sha256"][:12]
+    # Toujours basé sur le hash du dataset : stable, même sans accès au git_sha (ex: dans un conteneur)
+    version_token = split_manifest["manifest_sha256"][:12]
     metadata = {
         **runtime,
         "model_version": f"baseline-{version_token}",

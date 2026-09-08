@@ -46,8 +46,8 @@ def main() -> dict:
     if promoted:
         shutil.copy2(candidate_model_path, MODELS_DIR / "model.joblib")
         runtime = runtime_metadata()
-        # Version = sha git court si disponible, sinon fallback sur le hash du dataset.
-        version_token = runtime["git_sha"][:12] if runtime["git_sha"] != "unknown" else champion.get("dataset_manifest_sha256", "unknown")[:12]
+        # Toujours basé sur le hash du dataset du candidat : stable, même sans accès au git_sha (ex: dans un conteneur)
+        version_token = candidate.get("dataset_manifest_sha256", "unknown")[:12]
         champion.update(runtime)
         champion.update(
             {
