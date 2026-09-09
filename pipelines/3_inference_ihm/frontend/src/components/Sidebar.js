@@ -32,9 +32,11 @@ const Sidebar = ({ healthStatus, healthError }) => {
 
       <h3>Écosystème MLOps</h3>
       <div className="service-links">
-        <a className="service-link" href={PROMETHEUS_URL} target="_blank" rel="noopener noreferrer">
-          Prometheus ↗
-        </a>
+        {PROMETHEUS_URL && (
+          <a className="service-link" href={PROMETHEUS_URL} target="_blank" rel="noopener noreferrer">
+            Prometheus ↗
+          </a>
+        )}
         <a className="service-link" href={MLFLOW_URL} target="_blank" rel="noopener noreferrer">
           Tracking ↗
         </a>
