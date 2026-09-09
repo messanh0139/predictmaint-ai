@@ -6,7 +6,6 @@ import MetricsBar from './components/MetricsBar';
 import PredictionTab from './components/PredictionTab';
 import PerformanceTab from './components/PerformanceTab';
 import RetrainTab from './components/RetrainTab';
-import ArchitectureTab from './components/ArchitectureTab';
 import { checkHealth } from './services/api';
 import { DATA_PATH, METADATA_PATH, METRICS_PATH } from './config';
 import './styles/App.css';
@@ -87,8 +86,7 @@ const App = () => {
   const tabs = [
     { id: 'prediction', label: 'Démonstration prédictive' },
     { id: 'performance', label: 'Performance' },
-    { id: 'retrain', label: 'Réentraînement automatique' },
-    { id: 'architecture', label: 'Parcours de présentation' }
+    { id: 'retrain', label: 'Réentraînement automatique' }
   ];
 
   return (
@@ -122,9 +120,6 @@ const App = () => {
             )}
             {activeTab === 'retrain' && (
               <RetrainTab demoData={demoData} />
-            )}
-            {activeTab === 'architecture' && (
-              <ArchitectureTab />
             )}
           </div>
         </div>
