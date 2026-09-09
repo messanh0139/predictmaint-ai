@@ -10,6 +10,6 @@
   "tp": 465,
   "threshold": 0.002844517994672067,
   "model_name": "xgboost_optimized",
-  "model_version": "optimized-302137b8230f",
+  "model_version": "optimized-2979abf273c4",
   "evaluated_at_utc": "2026-08-28T23:52:10.973135+00:00"
 }

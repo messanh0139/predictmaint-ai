@@ -1,5 +1,5 @@
 {
-  "champion": "optimized-302137b8230f",
+  "champion": "optimized-2979abf273c4",
   "versions": [
     {
       "version": "baseline-c193920b2073",
@@ -32,7 +32,7 @@
       "metadata": "models/registry/baseline-c193920b2073/metadata.json"
     },
     {
-      "version": "optimized-302137b8230f",
+      "version": "optimized-2979abf273c4",
       "model_name": "xgboost_optimized",
       "model_sha256": "febd589107cb2cf208893e01c7c79178dc796cfc4b891885c1cb8204b15edd4d",
       "dataset_manifest_sha256": "2979abf273c43d175b197185912fe824d39c28584c47409435123fe470daae95",
@@ -54,8 +54,8 @@
         "business_cost": 180000.0,
         "business_cost_per_1000": 58746.7362924282
       },
-      "artifact": "models/registry/optimized-302137b8230f/model.joblib",
-      "metadata": "models/registry/optimized-302137b8230f/metadata.json"
+      "artifact": "models/registry/optimized-2979abf273c4/model.joblib",
+      "metadata": "models/registry/optimized-2979abf273c4/metadata.json"
     },
     {
       "version": "baseline-e3c7a53e273b",

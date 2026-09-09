@@ -10,7 +10,7 @@
     "xgboost": "3.1.3",
     "joblib": "1.5.3"
   },
-  "model_version": "optimized-302137b8230f",
+  "model_version": "optimized-2979abf273c4",
   "model_name": "xgboost_optimized",
   "threshold": 0.002844517994672067,
   "threshold_source": "dedicated calibration engines",
