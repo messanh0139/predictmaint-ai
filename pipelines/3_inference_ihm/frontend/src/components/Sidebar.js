@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { PROMETHEUS_URL, MLFLOW_URL, API_DOCS_URL } from '../config';
+import { MLFLOW_URL, API_DOCS_URL } from '../config';
 import { getServicesStatus } from '../services/api';
 
 const STATUS_POLL_INTERVAL_MS = 15000;
@@ -32,11 +32,6 @@ const Sidebar = ({ healthStatus, healthError }) => {
 
       <h3>Écosystème MLOps</h3>
       <div className="service-links">
-        {PROMETHEUS_URL && (
-          <a className="service-link" href={PROMETHEUS_URL} target="_blank" rel="noopener noreferrer">
-            Prometheus ↗
-          </a>
-        )}
         <a className="service-link" href={MLFLOW_URL} target="_blank" rel="noopener noreferrer">
           Tracking ↗
         </a>

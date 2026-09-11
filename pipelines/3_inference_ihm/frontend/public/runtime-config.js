@@ -2,7 +2,6 @@
 // En production, ce fichier est généré dynamiquement au démarrage du conteneur
 window.RUNTIME_CONFIG = {
   REACT_APP_API_URL: "http://localhost:8000",
-  REACT_APP_PROMETHEUS_URL: "http://localhost:9090",
   REACT_APP_GRAFANA_URL: "http://localhost:3000",
   REACT_APP_MLFLOW_URL: "http://localhost:5000",
   REACT_APP_API_DOCS_URL: "http://localhost:8000/docs",
