@@ -421,9 +421,9 @@
             "perSeriesAligner": "ALIGN_MEAN",
             "crossSeriesReducer": "REDUCE_MEAN",
             "alignmentPeriod": "60s",
-            "projectName": "predictmaint-ai-4821",
-            "aliasBy": "{{metric.label.model_name}} ({{metric.label.model_version}})"
+            "projectName": "predictmaint-ai-4821"
           },
+          "aliasBy": "{{metric.label.model_name}} ({{metric.label.model_version}})",
           "datasource": {
             "type": "stackdriver",
             "uid": "predictmaint-cloud-monitoring"
@@ -489,9 +489,9 @@
             "perSeriesAligner": "ALIGN_MEAN",
             "crossSeriesReducer": "REDUCE_MEAN",
             "alignmentPeriod": "60s",
-            "projectName": "predictmaint-ai-4821",
-            "aliasBy": "{{metric.label.metric}}"
+            "projectName": "predictmaint-ai-4821"
           },
+          "aliasBy": "{{metric.label.metric}}",
           "datasource": {
             "type": "stackdriver",
             "uid": "predictmaint-cloud-monitoring"
