@@ -104,6 +104,8 @@ TELEMETRY_ERRORS = Counter("predictmaint_telemetry_errors_total", "Erreurs de pe
 TELEMETRY_ERRORS.labels(sink="local")
 TELEMETRY_ERRORS.labels(sink="gcs")
 MODEL_READY = Gauge("predictmaint_model_ready", "1 si le modèle est chargé")
+MODEL_INFO = Gauge("predictmaint_model_info", "1 pour le modèle actuellement en production", ["model_name", "model_version"])
+MODEL_SCORE = Gauge("predictmaint_model_score", "Score de validation du modèle en production", ["metric"])
 DRIFT_SHARE = Gauge("predictmaint_drift_share", "Part des variables en dérive (PSI >= seuil)")
 DRIFT_PSI = Gauge("predictmaint_drift_psi", "PSI par variable vs référence TRAIN", ["feature"])
 CLOUD_MONITORING_EXPORT_ERRORS = Counter(
@@ -172,6 +174,17 @@ def load_assets(force: bool = False):
             MODEL_READY.set(0)
             raise ValueError(f"Contrat modèle incomplet: {missing}")
         MODEL_READY.set(1)
+        # Un reload (retrain) change de version : on efface les anciennes séries
+        # labellisées pour ne pas laisser un ancien modèle visible à côté du nouveau.
+        MODEL_INFO.clear()
+        MODEL_INFO.labels(
+            model_name=_metadata.get("model_name", "unknown"),
+            model_version=_metadata.get("model_version", "unknown"),
+        ).set(1)
+        MODEL_SCORE.clear()
+        for name, value in _metadata.get("validation_metrics", {}).items():
+            if isinstance(value, (int, float)):
+                MODEL_SCORE.labels(metric=name).set(value)
     return _model, _metadata
 
 
@@ -363,6 +376,8 @@ def _cloud_monitoring_flush_loop() -> None:
                 predictions=PREDICTIONS,
                 telemetry_errors=TELEMETRY_ERRORS,
                 model_ready=MODEL_READY,
+                model_info=MODEL_INFO,
+                model_score=MODEL_SCORE,
                 drift_share=DRIFT_SHARE,
                 drift_psi=DRIFT_PSI,
                 latency=LATENCY,

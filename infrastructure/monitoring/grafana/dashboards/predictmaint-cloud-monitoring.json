@@ -340,6 +340,166 @@
         "type": "stackdriver",
         "uid": "predictmaint-cloud-monitoring"
       }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "CPU % (Cloud Run - predictmaint-api)",
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "timeSeriesList",
+          "timeSeriesList": {
+            "filters": [
+              "metric.type",
+              "=",
+              "run.googleapis.com/container/cpu/utilization",
+              "AND",
+              "resource.label.service_name",
+              "=",
+              "predictmaint-api"
+            ],
+            "view": "FULL",
+            "perSeriesAligner": "ALIGN_MEAN",
+            "crossSeriesReducer": "REDUCE_MEAN",
+            "alignmentPeriod": "60s",
+            "projectName": "predictmaint-ai-4821"
+          },
+          "datasource": {
+            "type": "stackdriver",
+            "uid": "predictmaint-cloud-monitoring"
+          }
+        }
+      ],
+      "datasource": {
+        "type": "stackdriver",
+        "uid": "predictmaint-cloud-monitoring"
+      }
+    },
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "Modèle en production",
+      "gridPos": {
+        "x": 12,
+        "y": 21,
+        "w": 12,
+        "h": 8
+      },
+      "options": {
+        "textMode": "name",
+        "graphMode": "none",
+        "colorMode": "background"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "timeSeriesList",
+          "timeSeriesList": {
+            "filters": [
+              "metric.type",
+              "=",
+              "custom.googleapis.com/predictmaint/model_info"
+            ],
+            "view": "FULL",
+            "groupBys": [
+              "metric.label.model_name",
+              "metric.label.model_version"
+            ],
+            "perSeriesAligner": "ALIGN_MEAN",
+            "crossSeriesReducer": "REDUCE_MEAN",
+            "alignmentPeriod": "60s",
+            "projectName": "predictmaint-ai-4821"
+          },
+          "datasource": {
+            "type": "stackdriver",
+            "uid": "predictmaint-cloud-monitoring"
+          }
+        }
+      ],
+      "datasource": {
+        "type": "stackdriver",
+        "uid": "predictmaint-cloud-monitoring"
+      }
+    },
+    {
+      "id": 10,
+      "type": "bargauge",
+      "title": "Scores de validation du modèle",
+      "gridPos": {
+        "x": 0,
+        "y": 29,
+        "w": 24,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.7
+              },
+              {
+                "color": "green",
+                "value": 0.9
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "timeSeriesList",
+          "timeSeriesList": {
+            "filters": [
+              "metric.type",
+              "=",
+              "custom.googleapis.com/predictmaint/model_score",
+              "AND",
+              "metric.label.metric",
+              "=~",
+              "f1|roc_auc|pr_auc|recall|precision|balanced_accuracy"
+            ],
+            "view": "FULL",
+            "groupBys": [
+              "metric.label.metric"
+            ],
+            "perSeriesAligner": "ALIGN_MEAN",
+            "crossSeriesReducer": "REDUCE_MEAN",
+            "alignmentPeriod": "60s",
+            "projectName": "predictmaint-ai-4821"
+          },
+          "datasource": {
+            "type": "stackdriver",
+            "uid": "predictmaint-cloud-monitoring"
+          }
+        }
+      ],
+      "datasource": {
+        "type": "stackdriver",
+        "uid": "predictmaint-cloud-monitoring"
+      }
     }
   ]
 }

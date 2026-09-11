@@ -116,6 +116,8 @@ def build_time_series(
     predictions,
     telemetry_errors,
     model_ready,
+    model_info,
+    model_score,
     drift_share,
     drift_psi,
     latency,
@@ -135,6 +137,12 @@ def build_time_series(
 
     for sample in _samples(model_ready):
         series.append(_gauge_series(resource, "model_ready", {}, sample.value, now))
+
+    for sample in _samples(model_info):
+        series.append(_gauge_series(resource, "model_info", sample.labels, sample.value, now))
+
+    for sample in _samples(model_score):
+        series.append(_gauge_series(resource, "model_score", sample.labels, sample.value, now))
 
     for sample in _samples(drift_share):
         series.append(_gauge_series(resource, "drift_share", {}, sample.value, now))
@@ -164,6 +172,8 @@ def flush(
     predictions,
     telemetry_errors,
     model_ready,
+    model_info,
+    model_score,
     drift_share,
     drift_psi,
     latency,
@@ -178,6 +188,8 @@ def flush(
         predictions=predictions,
         telemetry_errors=telemetry_errors,
         model_ready=model_ready,
+        model_info=model_info,
+        model_score=model_score,
         drift_share=drift_share,
         drift_psi=drift_psi,
         latency=latency,
