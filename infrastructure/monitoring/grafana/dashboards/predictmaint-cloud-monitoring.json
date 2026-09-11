@@ -421,7 +421,8 @@
             "perSeriesAligner": "ALIGN_MEAN",
             "crossSeriesReducer": "REDUCE_MEAN",
             "alignmentPeriod": "60s",
-            "projectName": "predictmaint-ai-4821"
+            "projectName": "predictmaint-ai-4821",
+            "aliasBy": "{{metric.label.model_name}} ({{metric.label.model_version}})"
           },
           "datasource": {
             "type": "stackdriver",
@@ -488,7 +489,8 @@
             "perSeriesAligner": "ALIGN_MEAN",
             "crossSeriesReducer": "REDUCE_MEAN",
             "alignmentPeriod": "60s",
-            "projectName": "predictmaint-ai-4821"
+            "projectName": "predictmaint-ai-4821",
+            "aliasBy": "{{metric.label.metric}}"
           },
           "datasource": {
             "type": "stackdriver",
