@@ -8,7 +8,7 @@
 | Boosting | XGBoost | performant tabulaire, class imbalance | coût tuning supérieur |
 | Optimisation | Optuna | TPE, reproductibilité, historique essais | RandomizedSearch plus simple |
 | Tracking | MLflow | paramètres, métriques, artefacts | nécessite stockage persistant en équipe |
-| API | FastAPI / Pydantic | contrat typé, OpenAPI, faible friction | Flask plus minimal |
+| API | FastAPI / Pydantic | contrat typé, faible friction | Flask plus minimal |
 | Sérialisation | joblib + JSON metadata | simple, réutilisable | format Python dépend des versions librairies |
 | Conteneur | Docker | reproductibilité | image à maintenir/scanner |
 | CI/CD | GitHub Actions / Cloud Build | automatisation et audit | dépend de la gouvernance choisie |
@@ -18,6 +18,3 @@
 | Service monitoring | Prometheus/Grafana local | démo portable | en GCP, Cloud Monitoring est plus naturel |
 | Télémétrie | JSONL local + Cloud Storage | auditabilité simple | BigQuery préférable à grand volume |
 
-## Dimensionnement
-
-Le dataset FD001 ne justifie ni Spark ni GPU. Un CPU standard suffit. Le choix d'une architecture légère réduit coût, complexité et empreinte opérationnelle tout en répondant au besoin.

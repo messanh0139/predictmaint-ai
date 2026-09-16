@@ -44,7 +44,6 @@ Environnement local pour le développement, les tests et la démonstration des c
 - Captures d'écran pour le mémoire
 - Développement itératif
 
----
 
 ## Architecture de Production (GCP Cloud)
 
@@ -121,17 +120,16 @@ jobs:
 - Serverless (pas de base à maintenir)
 - Versioning natif
 - Intégration directe Cloud Run
-- Coût très faible (~1€/mois)
 
 #### 3. Compute : Cloud Run Services
 
 **Services déployés** :
 
-| Service | URL | Auto-scaling | Coût au repos |
-|---------|-----|--------------|---------------|
-| API FastAPI | **https://predictmaint-api-xxx.run.app** | 0-5 instances | 0€ |
-| Dashboard React | **https://predictmaint-dashboard-xxx.run.app** | 0-3 instances | 0€ |
-| Grafana | **https://predictmaint-grafana-xxx.run.app** | 0-2 instances | 0€ |
+| Service | URL |
+|---------|-----|
+| API FastAPI | **https://predictmaint-api-6iao6qpasa-ew.a.run.app** |
+| Dashboard React | **https://predictmaint-dashboard-6iao6qpasa-ew.a.run.app** |
+| Grafana | **https://predictmaint-grafana-6iao6qpasa-ew.a.run.app​** |
 
 **Cloud Run Job** (retraining) :
 - Exécuté à la demande (GitHub Actions ou Cloud Scheduler)
@@ -150,7 +148,6 @@ jobs:
 - Connecté à Cloud Monitoring API
 - Mot de passe sécurisé (Secret Manager)
 
----
 
 ## Comparaison Détaillée
 
@@ -161,12 +158,11 @@ jobs:
 | **Accessibilité** | Local uniquement | Public (GitHub + URLs Cloud Run) |
 | **Planification** | Cron local | Cloud Scheduler + Cron GitHub |
 | **Logs** | Local | Persistés, recherchables |
-| **Coût** | Gratuit (local) | Gratuit (2000 min/mois) |
+| **Coût** | Gratuit (local) | Gratuit |
 | **Scalabilité** | 1 worker | Illimitée |
 | **Maintenance** | Docker à maintenir | Zéro maintenance |
-| **Interface démo** | http://localhost:8081 | https://github.com/.../actions |
+| **Interface démo** | http://localhost:8081 | https://github.com/messanh0139/predictmaint-ai/actions |
 
-**Verdict** : Pour la production et la démonstration professionnelle, GitHub Actions est **supérieur** à Airflow local.
 
 ### Stockage
 
@@ -192,7 +188,6 @@ jobs:
 
 **Verdict** : Cloud Run permet une vraie démonstration production avec URLs publiques.
 
----
 
 ## Workflow Complet : Production vs Développement
 
@@ -242,113 +237,15 @@ jobs:
    └─ Smoke Tests
    ↓
 4. URLs publiques disponibles:
-   https://predictmaint-api-xxx.run.app
-   https://predictmaint-dashboard-xxx.run.app
-   https://predictmaint-grafana-xxx.run.app
+   https://predictmaint-dashboard-6iao6qpasa-ew.a.run.app ​
+   https://predictmaint-api-6iao6qpasa-ew.a.run.app ​
+   https://predictmaint-mlflow-6iao6qpasa-ew.a.run.app ​
+   https://predictmaint-grafana-6iao6qpasa-ew.a.run.app​
    ↓
 5. Partage des URLs dans le mémoire
 ```
 
----
 
-## Architecture Recommandée pour le Mémoire
 
-### Phase 1 : Démonstration Locale (Airflow)
 
-**Pour montrer la compréhension des concepts MLOps** :
-1. Présenter les DAGs Airflow (captures d'écran)
-2. Expliquer l'orchestration Pipeline 1 puis Pipeline 2
-3. Montrer MLflow local (comparaison modèles)
 
-**Slides mémoire** :
-- Screenshot Airflow Graph View
-- Screenshot MLflow Experiments
-- Explication : "En développement, Airflow orchestre..."
-
-### Phase 2 : Production Serverless (GitHub Actions + Cloud Run)
-
-**Pour montrer la mise en production professionnelle** :
-1. URLs publiques accessibles par le jury
-2. GitHub Actions comme orchestrateur production
-3. Infrastructure 100% serverless
-
-**Slides mémoire** :
-- Screenshot GitHub Actions workflow en succès
-- URLs publiques cliquables
-- Explication : "En production, GitHub Actions remplace Airflow pour..."
-
-### Phase 3 : Justification Architecturale
-
-**Argument dans le mémoire** :
-
-> "L'architecture de développement utilise Apache Airflow pour orchestrer les pipelines ETL et MLOps, permettant une visualisation claire des dépendances et une gestion robuste des erreurs. Cependant, pour le déploiement en production, nous adoptons une approche serverless avec GitHub Actions et Cloud Run, offrant plusieurs avantages :
->
-> 1. **Accessibilité** : URLs publiques vs interface locale
-> 2. **Coût** : Scale-to-zero vs serveurs dédiés (100€+/mois)
-> 3. **Maintenance** : Infrastructure managée vs administration manuelle
-> 4. **Scalabilité** : Auto-scaling natif vs capacité fixe
-> 5. **Sécurité** : HTTPS automatique, isolation par design
->
-> Cette architecture hybride démontre la compréhension des concepts MLOps (Airflow) tout en appliquant les meilleures pratiques cloud-native en production (GitHub Actions + Cloud Run)."
-
----
-
-## Migration Airflow vers Cloud Scheduler (Optionnel)
-
-Si vous voulez aller plus loin, vous pouvez ajouter **Cloud Scheduler** pour planifier le retraining hebdomadaire :
-
-```bash
-# Créer un job Cloud Scheduler qui déclenche le retraining
-gcloud scheduler jobs create http predictmaint-weekly-retrain \
-  --location=europe-west1 \
-  --schedule="0 2 * * 1" \
-  --uri="https://REGION-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/PROJECT_ID/jobs/predictmaint-retrain:run" \
-  --http-method=POST \
-  --oauth-service-account-email=predictmaint-deployer@PROJECT_ID.iam.gserviceaccount.com
-```
-
-Cela remplace complètement le **@weekly** d'Airflow par une solution cloud-native.
-
----
-
-## Conclusion : Quelle Architecture Présenter ?
-
-### Pour la Soutenance
-
-**Présentez les DEUX architectures** :
-
-1. **Architecture de développement** (Airflow + Docker)
-   - Montrez votre compréhension des pipelines ML
-   - Captures d'écran Airflow + MLflow
-   - "Environnement de développement et tests"
-
-2. **Architecture de production** (GitHub Actions + Cloud Run)
-   - Donnez les URLs publiques au jury
-   - Montrez le workflow GitHub Actions
-   - "Déploiement production serverless"
-
-**Message clé** :
-> "Airflow est excellent pour le développement et la démonstration des concepts MLOps. En production, nous adoptons une approche serverless avec GitHub Actions et Cloud Run, offrant une meilleure scalabilité, disponibilité et économie tout en conservant les mêmes garanties d'orchestration."
-
-### Avantages de cette Approche
-
-- **Montre votre expertise technique** (Airflow, DAGs, orchestration)
-- **Démontre votre pragmatisme** (choisir la bonne techno selon le contexte)
-- **Fournit une démo production réelle** (URLs publiques)
-- **Respecte les contraintes budgétaires** (serverless économique)
-- **Prouve votre compréhension MLOps** (dev vs prod)
-
----
-
-## Résumé : Ce qui est Professionnel
-
-| Composant | Non Professionnel | Professionnel |
-|-----------|---------------------|------------------|
-| **Orchestration** | Airflow uniquement local | Airflow (dev) + GitHub Actions (prod) |
-| **Démo** | Screenshots uniquement | URLs publiques cliquables |
-| **Accessibilité** | localhost:8081 | https://github.com/user/project/actions |
-| **Prédictions** | curl localhost | https://predictmaint-api-xxx.run.app/docs |
-| **Monitoring** | Grafana local | https://predictmaint-grafana-xxx.run.app |
-| **Infrastructure** | "à faire tourner" | Déjà déployée 24/7 |
-
-**Votre architecture actuelle est DÉJÀ professionnelle** grâce à GitHub Actions + Cloud Run ! Il suffit de bien l'expliquer dans votre mémoire.

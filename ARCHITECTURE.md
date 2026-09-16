@@ -9,30 +9,9 @@ Le système a deux modes de fonctionnement :
 
 ## Vue d'ensemble (production)
 
-```
-┌────────────────────────────────────────────────────────────────┐
-│  1. Pipeline ML (src/)                                          │
-│     préparation → feature engineering → sélection → entraînement│
-│     → optimisation Optuna → sélection champion → quality gate   │
-│     → registre (local + MLflow + GCS)                           │
-└────────────────────────────────────────────────────────────────┘
-                              │
-                     déclenché par Cloud Scheduler (quotidien)
-                     ou par un push sur main (CI/CD)
-                              ▼
-┌────────────────────────────────────────────────────────────────┐
-│  2. Service d'inférence (Cloud Run)                             │
-│     API FastAPI (predictmaint-api) — charge le modèle champion  │
-│     Dashboard React (predictmaint-dashboard)                    │
-└────────────────────────────────────────────────────────────────┘
-                              │
-                     prédictions + feedback journalisés (GCS)
-                              ▼
-┌────────────────────────────────────────────────────────────────┐
-│  3. Supervision                                                 │
-│     API → métriques custom → Cloud Monitoring → Grafana         │
-└────────────────────────────────────────────────────────────────┘
-```
+<p align="center">
+  <img src="docs/predictmaint_ai_deployment_flow.png" alt="Architecture PredictMaint AI" width="900">
+</p>
 
 Le feedback de production (résultat réel connu a posteriori) est repris automatiquement au réentraînement suivant, ce qui boucle le système sur lui-même sans intervention manuelle.
 
@@ -149,35 +128,9 @@ MongoDB, PostgreSQL et Airflow servent à une ingestion ETL optionnelle (**pipel
 
 ## Structure du projet
 
-```
-predictmaint-ai/
-├── src/                         Pipeline ML
-│   ├── config.py
-│   ├── data/                    Chargement, split, cibles, validation
-│   ├── features/                 Feature engineering, sélection
-│   ├── models/                   Entraînement, optimisation, registre
-│   ├── monitoring/               Dérive (PSI), performance
-│   ├── pipelines/retrain.py      Orchestration du réentraînement
-│   ├── storage/                  Persistance des artefacts modèle
-│   └── utils/
-├── pipelines/
-│   ├── 1_etl_ingestion/          Ingestion optionnelle (dev local)
-│   └── 3_inference_ihm/
-│       ├── api/                  API FastAPI
-│       └── frontend/              Dashboard React
-├── orchestration/airflow/        DAGs pour l'ETL local (optionnel)
-├── infrastructure/
-│   ├── deployment/                Dockerfiles, docker-compose, scripts GCP
-│   ├── monitoring/grafana/         Dashboards Grafana
-│   └── tests/                     Tests unitaires et d'intégration
-├── storage/
-│   ├── raw/                       Données brutes FD001
-│   ├── processed/                 Données préparées, splits
-│   └── models/                    Registre local, rapports
-├── docs/                          Documentation détaillée
-├── notebooks/                     Analyses exploratoires
-└── .github/workflows/deploy.yml   CI/CD
-```
+<p align="center">
+  <img src="docs/predictmaint_ai_architecture.png" alt="Architecture PredictMaint AI" width="900">
+</p>
 
 ## Documentation complémentaire
 

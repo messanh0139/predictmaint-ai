@@ -1,4 +1,4 @@
-# Résultats EDA — jeu de données FD001
+# Résultats EDA - jeu de données FD001
 
 ## Structure et qualité
 
@@ -44,6 +44,3 @@ Sur TRAIN uniquement, les corrélations absolues brutes les plus élevées avec 
 
 Cette observation guide l'exploration mais ne remplace pas la sélection data-driven réalisée uniquement sur le TRAIN.
 
-## Point de vigilance
-
-Les conditions de FD001 sont simples. Une extension FD004 est pertinente pour tester plusieurs conditions opérationnelles et plusieurs modes de défaillance après validation de la V1.

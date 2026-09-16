@@ -8,30 +8,11 @@ Ce dépôt couvre l'ensemble de la chaîne : préparation des données, entraîn
 
 Sur une flotte de moteurs, une panne non anticipée coûte beaucoup plus cher qu'une intervention de maintenance programmée à l'avance. Le modèle doit donc privilégier le rappel (ne pas manquer une panne réelle) tout en gardant un nombre raisonnable de fausses alertes. C'est ce compromis qui pilote le choix du modèle final, via un coût métier calculé explicitement (faux négatif largement plus pénalisé qu'un faux positif).
 
-## Architecture du dépôt
+## Architecture du dépôt 
 
-```text
-predictmaint-ai/
-├── src/                        Pipeline ML (le cœur du projet)
-│   ├── data/                   Préparation, split par moteur, validation, cibles
-│   ├── features/                Feature engineering causal, sélection de variables
-│   ├── models/                  Entraînement, optimisation Optuna, quality gate, registre
-│   ├── monitoring/               Dérive des données (PSI), suivi de performance
-│   └── pipelines/retrain.py     Orchestration du réentraînement complet
-├── pipelines/
-│   ├── 1_etl_ingestion/         Ingestion optionnelle vers MongoDB/PostgreSQL (dev local)
-│   └── 3_inference_ihm/
-│       ├── api/                 API FastAPI (prédiction, feedback, réentraînement)
-│       └── frontend/             Dashboard React
-├── infrastructure/
-│   ├── deployment/               Dockerfiles, docker-compose (dev local), scripts GCP
-│   ├── monitoring/grafana/       Dashboards Grafana
-│   └── tests/                    Tests unitaires et d'intégration
-├── orchestration/airflow/        DAGs Airflow pour l'ETL en local (optionnel)
-├── docs/                         Documentation détaillée (besoin métier, data leakage, etc.)
-├── notebooks/                    Analyses exploratoires
-└── .github/workflows/deploy.yml  CI/CD : tests, build, déploiement GCP
-```
+<p align="center">
+  <img src="docs/predictmaint_ai_architecture.png" alt="Architecture PredictMaint AI" width="900">
+</p>
 
 Le détail de l'architecture (schémas, flux de données, choix de conception) est dans [ARCHITECTURE.md](ARCHITECTURE.md).
 
