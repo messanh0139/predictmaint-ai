@@ -16,11 +16,16 @@ gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
 docker build -f Dockerfile.train -t "$IMAGE" .
 docker push "$IMAGE"
 
+# MLFLOW_TRACKING_URI doit pointer vers le service MLflow persistant (Cloud Run),
+# pas vers un chemin local au conteneur : /tmp est perdu à chaque exécution du
+# Job, ce qui viderait le registre et invaliderait toute comparaison "champion".
+: "${MLFLOW_TRACKING_URI:?Set MLFLOW_TRACKING_URI to the persistent MLflow service URL (see deploy_mlflow.sh output)}"
+
 gcloud run jobs deploy "$JOB" \
   --image "$IMAGE" \
   --region "$REGION" \
   --service-account "$TRAINER_SA" \
-  --set-env-vars "PREDICTION_BUCKET=$PREDICTION_BUCKET,MODEL_ARTIFACT_BUCKET=$MODEL_ARTIFACT_BUCKET,INCLUDE_PRODUCTION_FEEDBACK=1,MLFLOW_TRACKING_URI=sqlite:////tmp/mlflow.db" \
+  --set-env-vars "PREDICTION_BUCKET=$PREDICTION_BUCKET,MODEL_ARTIFACT_BUCKET=$MODEL_ARTIFACT_BUCKET,INCLUDE_PRODUCTION_FEEDBACK=1,MLFLOW_TRACKING_URI=$MLFLOW_TRACKING_URI" \
   --tasks 1 \
   --max-retries 1 \
   --task-timeout 3600

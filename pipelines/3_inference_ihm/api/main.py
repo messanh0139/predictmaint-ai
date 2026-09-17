@@ -390,6 +390,17 @@ def _cloud_monitoring_flush_loop() -> None:
 threading.Thread(target=_cloud_monitoring_flush_loop, daemon=True).start()
 
 
+@app.get("/")
+def root():
+    # Racine informative : évite un 404 brut pour qui visite l'URL de l'API directement
+    return {
+        "service": app.title,
+        "version": app.version,
+        "docs": "/docs",
+        "health": "/health",
+    }
+
+
 @app.get("/live")
 def liveness():
     # Sonde de liveness : le process répond, sans vérifier le modèle
