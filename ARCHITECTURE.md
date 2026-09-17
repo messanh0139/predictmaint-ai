@@ -99,12 +99,12 @@ Interface de démonstration : soumission d'un moteur, visualisation du risque pr
 
 L'API exporte ses métriques vers Cloud Monitoring (**pipelines/3_inference_ihm/api/cloud_monitoring.py**, converties depuis le format Prometheus) :
 
-- **predictmaint/predictions_total** — nombre de prédictions, par niveau de risque
-- **predictmaint/prediction_latency_seconds_mean** — latence moyenne
-- **predictmaint/model_ready** — disponibilité du modèle
-- **predictmaint/drift_share** — part des variables en dérive
-- **predictmaint/drift_psi** — indice PSI par variable, comparé à la référence d'entraînement
-- **predictmaint/telemetry_errors_total** — erreurs de persistance de la télémétrie
+- **predictmaint/predictions_total** : nombre de prédictions, par niveau de risque
+- **predictmaint/prediction_latency_seconds_mean** : latence moyenne
+- **predictmaint/model_ready** : disponibilité du modèle
+- **predictmaint/drift_share** : part des variables en dérive
+- **predictmaint/drift_psi** : indice PSI par variable, comparé à la référence d'entraînement
+- **predictmaint/telemetry_errors_total** : erreurs de persistance de la télémétrie
 
 Ces métriques sont affichées dans Grafana (dashboard **PredictMaint AI - Cloud Monitoring**), aux côtés des métriques natives Cloud Run (nombre de requêtes, etc.).
 
@@ -134,7 +134,7 @@ MongoDB, PostgreSQL et Airflow servent à une ingestion ETL optionnelle (**pipel
 
 ## Documentation complémentaire
 
-- **README.md** — présentation générale et démarrage rapide
-- **QUICK_START.md** — prise en main pas à pas
-- **docs/** — besoin métier, stratégie ML, prévention du data leakage, monitoring, risques et limites
-- **storage/models/** — rapports de validation, quality gate, optimisation (générés à chaque run)
+- **README.md** : présentation générale et démarrage rapide
+- **QUICK_START.md** : prise en main pas à pas
+- **docs/** : besoin métier, stratégie ML, prévention du data leakage, monitoring, risques et limites
+- **storage/models/** : rapports de validation, quality gate, optimisation (générés à chaque run)

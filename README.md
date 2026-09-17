@@ -115,15 +115,15 @@ pytest infrastructure/tests/ -v --cov
 
 ## Documentation complémentaire
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) — architecture détaillée et choix de conception
-- [QUICK_START.md](QUICK_START.md) — prise en main pas à pas
-- [GUIDE_UTILISATION.md](GUIDE_UTILISATION.md) — guide d'utilisation de l'API et du dashboard
-- [docs/](docs/) — besoin métier, stratégie ML, prévention du data leakage, monitoring, risques et limites
+- [ARCHITECTURE.md](ARCHITECTURE.md) : architecture détaillée et choix de conception
+- [QUICK_START.md](QUICK_START.md) : prise en main pas à pas
+- [GUIDE_UTILISATION.md](GUIDE_UTILISATION.md) : guide d'utilisation de l'API et du dashboard
+- [docs/](docs/) : besoin métier, stratégie ML, prévention du data leakage, monitoring, risques et limites
 
 ## Auteur
 
-Messanh Yaovi KODJO — kmessanhyaovi@gmail.com
+Messanh Yaovi KODJO , email:  kmessanhyaovi@gmail.com , Formation : Expert en Intelligence Artificielle
 
 ## Licence
 
-MIT.
+MIT
