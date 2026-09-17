@@ -140,6 +140,32 @@
       "metadata": "models/registry/optimized-709c75d8d180/metadata.json"
     },
     {
+      "version": "optimized-61b3e7acba18",
+      "model_name": "xgboost_optimized",
+      "model_sha256": "163ecd9b11807834fd875c1056eb9eb609a219c1b0c98a5beeb937eb554247f9",
+      "dataset_manifest_sha256": "61b3e7acba1885967990bfc7b0208317b2d6a7fd146423fa269811dfa6983370",
+      "validation_metrics": {
+        "threshold": 0.03,
+        "precision": 0.5981432360742706,
+        "recall": 0.9698924731182795,
+        "specificity": 0.8834166987302808,
+        "balanced_accuracy": 0.9266545859242802,
+        "f1": 0.7399507793273175,
+        "mcc": 0.7107950046834021,
+        "roc_auc": 0.983973157583355,
+        "pr_auc": 0.9247909286747977,
+        "brier": 0.03850114867193424,
+        "tn": 2296,
+        "fp": 303,
+        "fn": 14,
+        "tp": 451,
+        "business_cost": 291500.0,
+        "business_cost_per_1000": 95137.07571801567
+      },
+      "artifact": "models/registry/optimized-61b3e7acba18/model.joblib",
+      "metadata": "models/registry/optimized-61b3e7acba18/metadata.json"
+    },
+    {
       "version": "baseline-2979abf273c4",
       "model_name": "random_forest",
       "model_sha256": "44843e6de638b6141370da45f559e1299018691dd7a7cb6c70b0ef096c23981d",

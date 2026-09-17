@@ -34,8 +34,8 @@
     "status": "registered",
     "tracking_uri": "http://mlflow:5000",
     "registry_name": "predictmaint-fd001",
-    "registered_version": "5",
-    "run_id": "3538b2b7366d43e7a9c9cec0c9facf34",
+    "registered_version": "8",
+    "run_id": "098257c21cb841dda9660096c071730e",
     "registry_champion_updated": false
   },
   "gcs_artifact_store": {
